@@ -1,0 +1,229 @@
+/* Base styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f0f0;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* AOL-inspired styles */
+.aim-window {
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 0;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.2);
+  margin: 20px;
+  overflow: hidden;
+}
+
+.aim-header {
+  background: linear-gradient(to right, #3b5998, #8b9dc3);
+  color: white;
+  padding: 5px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'VT323', monospace;
+}
+
+.aim-header-buttons {
+  display: flex;
+}
+
+.aim-header-button {
+  width: 16px;
+  height: 16px;
+  margin-left: 5px;
+  border: 1px solid #000;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.aim-minimize {
+  background-color: #ffcc00;
+}
+
+.aim-maximize {
+  background-color: #00cc00;
+}
+
+.aim-close {
+  background-color: #ff0000;
+}
+
+.aim-content {
+  padding: 10px;
+}
+
+/* Buddy list styles */
+.buddy-list {
+  width: 250px;
+  height: 400px;
+  overflow: auto;
+}
+
+.buddy-list-header {
+  background-color: #d4d0c8;
+  padding: 5px;
+  border-bottom: 1px solid #a0a0a0;
+  font-weight: bold;
+}
+
+.buddy-item {
+  padding: 5px;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.buddy-item:hover {
+  background-color: #e8e8e8;
+}
+
+.buddy-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  background-color: #00cc00;
+  border-radius: 50%;
+}
+
+/* Chat window styles */
+.chat-window {
+  width: 400px;
+  height: 350px;
+}
+
+.chat-messages {
+  height: 250px;
+  overflow-y: auto;
+  border: 1px solid #a0a0a0;
+  background-color: #ffffff;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.chat-input {
+  display: flex;
+}
+
+.chat-input textarea {
+  flex-grow: 1;
+  height: 60px;
+  resize: none;
+  border: 1px solid #a0a0a0;
+  padding: 5px;
+  font-family: inherit;
+}
+
+.chat-input button {
+  width: 80px;
+  background-color: #d4d0c8;
+  border: 1px solid #a0a0a0;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.chat-input button:hover {
+  background-color: #e8e8e8;
+}
+
+.message {
+  margin-bottom: 8px;
+}
+
+.message-user {
+  color: #ff0000;
+  font-weight: bold;
+}
+
+.message-boy {
+  color: #0000ff;
+  font-weight: bold;
+}
+
+.message-content {
+  margin-top: 2px;
+}
+
+/* Waiting room styles */
+.waiting-room {
+  width: 400px;
+  height: 300px;
+}
+
+.waiting-room-users {
+  height: 200px;
+  overflow-y: auto;
+  border: 1px solid #a0a0a0;
+  background-color: #ffffff;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.waiting-room-controls {
+  display: flex;
+  justify-content: space-between;
+}
+
+.waiting-room-controls button {
+  background-color: #d4d0c8;
+  border: 1px solid #a0a0a0;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.waiting-room-controls button:hover {
+  background-color: #e8e8e8;
+}
+
+.leader-badge {
+  background-color: #ffcc00;
+  color: #000000;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  margin-left: 5px;
+}
+
+/* Login screen styles */
+.login-screen {
+  width: 300px;
+  margin: 100px auto;
+  text-align: center;
+}
+
+.login-logo {
+  font-family: 'VT323', monospace;
+  font-size: 36px;
+  margin-bottom: 20px;
+  color: #3b5998;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #a0a0a0;
+}
+
+.login-form button {
+  width: 100%;
+  padding: 8px;
+  background-color: #d4d0c8;
+  border: 1px solid #a0a0a0;
+  cursor: pointer;
+}
+
+.login-form button:hover {
+  background-color: #e8e8e8;
+}
