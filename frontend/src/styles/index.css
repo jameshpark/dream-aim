@@ -1,12 +1,53 @@
 /* Base styles */
-body {
+html, body {
+  height: 100%;
+  width: 100%;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+body {
+  font-family: 'Roboto', 'Lucida Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f0f0f0;
+  background-color: #d6d2c2;
+  background-image: url('../../public/background.png');
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Media queries for responsive background */
+@media (max-width: 480px) {
+  body {
+    background-size: cover; /* Ensure full coverage on small screens */
+    /* On smaller screens, we might want to adjust the background position */
+    background-position: center top;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+  body {
+    background-size: cover; /* Maintain coverage on medium screens */
+  }
+}
+
+@media (min-width: 1025px) {
+  body {
+    background-size: cover; /* Allow image to scale on large screens */
+    /* For larger screens, we can use a higher quality background if needed */
+    /* background-image: url('/background-hd.png'); */
+  }
+}
+
+/* Ensure the app container takes full height */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 code {
@@ -14,24 +55,38 @@ code {
     monospace;
 }
 
+/* Responsive breakpoints */
+:root {
+  --mobile-breakpoint: 480px;
+  --tablet-breakpoint: 768px;
+  --desktop-breakpoint: 1024px;
+}
+
 /* AOL-inspired styles */
 .aim-window {
-  background-color: #ffffff;
-  border: 2px solid #000000;
-  border-radius: 0;
-  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.2);
-  margin: 20px;
+  background-color: #ece9d8;
+  border: 1px solid #000000;
+  border-radius: 3px;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
+  margin: 20px auto;
   overflow: hidden;
+  max-width: 95%;
+  font-family: 'Lucida Grande', 'Lucida Sans Unicode', Arial, sans-serif;
 }
 
 .aim-header {
-  background: linear-gradient(to right, #3b5998, #8b9dc3);
+  background: linear-gradient(to right, #2d5bb9, #5f8dd3);
   color: white;
   padding: 5px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-family: 'VT323', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #000;
 }
 
 .aim-header-buttons {
@@ -61,6 +116,19 @@ code {
 
 .aim-content {
   padding: 10px;
+  background-color: #ece9d8;
+  color: #000000;
+}
+
+/* Game container styles */
+.game-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 /* Buddy list styles */
@@ -68,25 +136,38 @@ code {
   width: 250px;
   height: 400px;
   overflow: auto;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .buddy-list {
+    width: 100%;
+    max-width: 400px;
+    height: 300px;
+  }
 }
 
 .buddy-list-header {
-  background-color: #d4d0c8;
+  background-color: #d6d2c2;
   padding: 5px;
   border-bottom: 1px solid #a0a0a0;
   font-weight: bold;
+  font-size: 12px;
+  color: #333333;
 }
 
 .buddy-item {
-  padding: 5px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 5px 8px;
+  border-bottom: 1px solid #d6d2c2;
   cursor: pointer;
   display: flex;
   align-items: center;
+  font-size: 12px;
+  transition: background-color 0.1s ease;
 }
 
 .buddy-item:hover {
-  background-color: #e8e8e8;
+  background-color: #d6d2c2;
 }
 
 .buddy-icon {
@@ -94,13 +175,35 @@ code {
   height: 16px;
   margin-right: 8px;
   background-color: #00cc00;
+  border-radius: 2px;
+  border: 1px solid #999999;
+  position: relative;
+}
+
+.buddy-icon::before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: #00cc00;
   border-radius: 50%;
+  top: 2px;
+  left: 2px;
 }
 
 /* Chat window styles */
 .chat-window {
   width: 400px;
   height: 350px;
+  flex-grow: 1;
+}
+
+@media (max-width: 768px) {
+  .chat-window {
+    width: 100%;
+    max-width: 400px;
+    height: 350px;
+  }
 }
 
 .chat-messages {
@@ -110,6 +213,8 @@ code {
   background-color: #ffffff;
   padding: 10px;
   margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .chat-input {
@@ -123,14 +228,36 @@ code {
   border: 1px solid #a0a0a0;
   padding: 5px;
   font-family: inherit;
+  font-size: 12px;
+  background-color: #ffffff;
 }
 
 .chat-input button {
   width: 80px;
-  background-color: #d4d0c8;
+  background-color: #d6d2c2;
   border: 1px solid #a0a0a0;
   cursor: pointer;
   margin-left: 5px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #333333;
+}
+
+@media (max-width: 480px) {
+  .chat-input {
+    flex-direction: column;
+  }
+
+  .chat-input textarea {
+    height: 80px;
+    margin-bottom: 5px;
+  }
+
+  .chat-input button {
+    width: 100%;
+    margin-left: 0;
+    padding: 10px;
+  }
 }
 
 .chat-input button:hover {
@@ -138,27 +265,41 @@ code {
 }
 
 .message {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  position: relative;
 }
 
 .message-user {
-  color: #ff0000;
+  color: #d40000;
   font-weight: bold;
+  font-size: 11px;
 }
 
 .message-boy {
-  color: #0000ff;
+  color: #0000d4;
   font-weight: bold;
+  font-size: 11px;
 }
 
 .message-content {
   margin-top: 2px;
+  padding-left: 4px;
+  border-left: 1px solid #e0e0e0;
+  word-wrap: break-word;
 }
 
 /* Waiting room styles */
 .waiting-room {
-  width: 400px;
-  height: 300px;
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  min-height: 300px;
+}
+
+@media (max-width: 480px) {
+  .waiting-room {
+    margin: 10px auto;
+  }
 }
 
 .waiting-room-users {
@@ -168,11 +309,35 @@ code {
   background-color: #ffffff;
   padding: 10px;
   margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.waiting-room-users h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #333333;
+}
+
+.waiting-room-users ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.waiting-room-users li {
+  padding: 5px 0;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
 }
 
 .waiting-room-controls {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .waiting-room-controls button {
@@ -180,6 +345,24 @@ code {
   border: 1px solid #a0a0a0;
   padding: 5px 10px;
   cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .waiting-room-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .waiting-room-controls p {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .waiting-room-controls button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 5px;
+  }
 }
 
 .waiting-room-controls button:hover {
@@ -197,16 +380,30 @@ code {
 
 /* Login screen styles */
 .login-screen {
-  width: 300px;
+  width: 100%;
+  max-width: 300px;
   margin: 100px auto;
   text-align: center;
+}
+
+@media (max-width: 480px) {
+  .login-screen {
+    margin: 50px auto;
+  }
 }
 
 .login-logo {
   font-family: 'VT323', monospace;
   font-size: 36px;
   margin-bottom: 20px;
-  color: #3b5998;
+  color: #2d5bb9;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.login-info {
+  font-size: 12px;
+  color: #333333;
+  margin-top: 15px;
 }
 
 .login-form input {
@@ -214,16 +411,28 @@ code {
   padding: 8px;
   margin-bottom: 10px;
   border: 1px solid #a0a0a0;
+  font-size: 12px;
+  background-color: #ffffff;
 }
 
 .login-form button {
   width: 100%;
   padding: 8px;
-  background-color: #d4d0c8;
+  background-color: #d6d2c2;
   border: 1px solid #a0a0a0;
   cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: #333333;
+  transition: background-color 0.1s ease;
 }
 
 .login-form button:hover {
-  background-color: #e8e8e8;
+  background-color: #c4c0b0;
+}
+
+.error-message {
+  color: #d40000;
+  font-size: 12px;
+  margin-top: 10px;
 }
