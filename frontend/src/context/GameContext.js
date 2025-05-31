@@ -9,7 +9,7 @@ export const GameContext = createContext();
 export const GameProvider = ({ children }) => {
   const { currentUser, isAuthenticated, getAuthHeader } = useContext(AuthContext);
   const { activeRound } = useContext(ChatContext);
-  
+
   const [buddies, setBuddies] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [currentConversation, setCurrentConversation] = useState(null);
@@ -17,16 +17,11 @@ export const GameProvider = ({ children }) => {
   const [guessResult, setGuessResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+  const [isBuddyTyping, setIsBuddyTyping] = useState(false);
+
   // API URL from environment variable
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-  // Fetch buddies when authenticated
-  useEffect(() => {
-    if (isAuthenticated && currentUser) {
-      fetchBuddies();
-    }
-  }, [isAuthenticated, currentUser]);
 
   // Fetch conversations when in an active round
   useEffect(() => {
@@ -42,7 +37,7 @@ export const GameProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/game/buddies`, {
         headers: getAuthHeader()
       });
-      
+
       setBuddies(response.data);
       setLoading(false);
     } catch (error) {
@@ -59,7 +54,7 @@ export const GameProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/chat/conversations`, {
         headers: getAuthHeader()
       });
-      
+
       setConversations(response.data);
       setLoading(false);
     } catch (error) {
@@ -75,18 +70,18 @@ export const GameProvider = ({ children }) => {
       if (!activeRound) {
         throw new Error('No active round');
       }
-      
+
       // Check if conversation already exists
       const existingConversation = conversations.find(
         conv => conv.buddy_id === buddyId && conv.round_id === activeRound.id
       );
-      
+
       if (existingConversation) {
         setCurrentConversation(existingConversation);
         await fetchConversationMessages(existingConversation.id);
         return existingConversation;
       }
-      
+
       // Create a new conversation
       const response = await axios.post(`${API_URL}/chat/conversations`, {
         user_id: currentUser.id,
@@ -95,11 +90,11 @@ export const GameProvider = ({ children }) => {
       }, {
         headers: getAuthHeader()
       });
-      
+
       const newConversation = response.data;
       setConversations(prev => [...prev, newConversation]);
       setCurrentConversation(newConversation);
-      
+
       return newConversation;
     } catch (error) {
       console.error('Failed to start conversation:', error);
@@ -115,7 +110,7 @@ export const GameProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/chat/conversations/${conversationId}/messages`, {
         headers: getAuthHeader()
       });
-      
+
       setConversationMessages(response.data);
       setLoading(false);
     } catch (error) {
@@ -129,27 +124,32 @@ export const GameProvider = ({ children }) => {
   const sendMessageToBuddy = async (conversationId, content) => {
     try {
       if (!content.trim()) return;
-      
-      const response = await axios.post(`${API_URL}/game/conversations/${conversationId}/message`, {
-        conversation_id: conversationId,
+
+      const response = await axios.post(`${API_URL}/chat/conversations/${conversationId}/messages`, {
         sender_type: 'user',
         content: content
       }, {
         headers: getAuthHeader()
       });
-      
+
       // Add the message to the state
       setConversationMessages(prev => [...prev, response.data]);
-      
-      // Fetch updated messages after a short delay to get the buddy's response
+
+      // Show typing indicator
+      setIsBuddyTyping(true);
+
+      // Fetch updated messages after a random delay between 1-3 seconds to get the buddy's response
+      const randomDelay = Math.floor(Math.random() * 2000) + 1000; // Random delay between 1-3 seconds
       setTimeout(() => {
         fetchConversationMessages(conversationId);
-      }, 1000);
-      
+        setIsBuddyTyping(false);
+      }, randomDelay);
+
       return response.data;
     } catch (error) {
       console.error('Failed to send message to buddy:', error);
       setError('Failed to send message. Please try again.');
+      setIsBuddyTyping(false);
       return null;
     }
   };
@@ -160,11 +160,11 @@ export const GameProvider = ({ children }) => {
       if (!activeRound) {
         throw new Error('No active round');
       }
-      
+
       const response = await axios.post(`${API_URL}/game/guess`, buddyId, {
         headers: getAuthHeader()
       });
-      
+
       setGuessResult(response.data.data);
       return response.data.data;
     } catch (error) {
@@ -180,12 +180,12 @@ export const GameProvider = ({ children }) => {
       await axios.post(`${API_URL}/game/return-to-lobby`, {}, {
         headers: getAuthHeader()
       });
-      
+
       // Reset game state
       setCurrentConversation(null);
       setConversationMessages([]);
       setGuessResult(null);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to return to lobby:', error);
@@ -204,6 +204,7 @@ export const GameProvider = ({ children }) => {
         guessResult,
         loading,
         error,
+        isBuddyTyping,
         fetchBuddies,
         fetchConversations,
         startConversation,

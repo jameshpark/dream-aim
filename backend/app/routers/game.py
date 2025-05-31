@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv
 from typing import List, Dict, Optional
 from datetime import datetime
 import random
@@ -10,6 +11,8 @@ from app.database.database import get_db
 from app.models import models
 from app.schemas import schemas
 from app.routers.users import get_current_user
+
+load_dotenv()
 
 # OpenAI API key - in production, use environment variables
 openai.api_key = os.getenv("OPENAI_API_KEY", "your-openai-api-key")

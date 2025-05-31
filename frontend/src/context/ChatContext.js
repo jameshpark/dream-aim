@@ -50,6 +50,10 @@ export const ChatProvider = ({ children }) => {
     socket.onopen = () => {
       console.log('WebSocket connected');
       setIsConnected(true);
+
+      // Immediately fetch leader and users when connection is established
+      fetchLeader();
+      fetchChatUsers();
     };
 
     socket.onmessage = (event) => {
@@ -96,6 +100,8 @@ export const ChatProvider = ({ children }) => {
       case 'user_status':
         // Refresh user list when a user connects or disconnects
         fetchChatUsers();
+        // Also refresh leader info as it might have changed
+        fetchLeader();
         break;
 
       case 'leader_assigned':
@@ -220,7 +226,11 @@ export const ChatProvider = ({ children }) => {
   // Start a new game round (leader only)
   const startRound = async () => {
     try {
-      if (!currentUser || currentUser.role !== 'LEADER') {
+      // Check if user is leader either by role or by matching the leader object
+      const isLeader = (currentUser && currentUser.role === 'LEADER') || 
+                      (currentUser && leader && currentUser.id === leader.id);
+
+      if (!currentUser || !isLeader) {
         throw new Error('Only the leader can start a round');
       }
 

@@ -80,7 +80,7 @@ const MessageBubble = styled.div`
   background-color: ${props => props.isUser ? 'var(--primary-color)' : '#e0e0e0'};
   color: ${props => props.isUser ? 'white' : 'black'};
   position: relative;
-  
+
   &:after {
     content: '';
     position: absolute;
@@ -100,6 +100,30 @@ const MessageTime = styled.div`
   color: ${props => props.isUser ? 'rgba(255, 255, 255, 0.7)' : '#888'};
   text-align: right;
   margin-top: 5px;
+`;
+
+const TypingIndicator = styled.div`
+  padding: 10px 15px;
+  border-radius: 18px;
+  margin-bottom: 10px;
+  align-self: flex-start;
+  background-color: #e0e0e0;
+  color: black;
+  font-style: italic;
+  position: relative;
+
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -10px;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-top-color: #e0e0e0;
+    border-bottom: 0;
+    margin-bottom: -10px;
+  }
 `;
 
 const InputArea = styled.div`
@@ -135,15 +159,15 @@ const SendButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  
+
   &:hover {
     background-color: #0055aa;
   }
-  
+
   &:active {
     transform: scale(0.95);
   }
-  
+
   &:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
@@ -184,7 +208,7 @@ const BuddyChat = () => {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
   const [message, setMessage] = useState('');
-  
+
   const { currentUser, isAuthenticated } = useContext(AuthContext);
   const { activeRound } = useContext(ChatContext);
   const { 
@@ -194,6 +218,7 @@ const BuddyChat = () => {
     conversationMessages,
     loading,
     error,
+    isBuddyTyping,
     startConversation,
     fetchConversationMessages,
     sendMessageToBuddy,
@@ -222,7 +247,7 @@ const BuddyChat = () => {
         const existingConv = conversations.find(
           conv => conv.buddy_id === parseInt(buddyId) && conv.round_id === activeRound?.id
         );
-        
+
         if (existingConv) {
           setCurrentConversation(existingConv);
           await fetchConversationMessages(existingConv.id);
@@ -234,7 +259,7 @@ const BuddyChat = () => {
         }
       }
     };
-    
+
     initConversation();
   }, [isAuthenticated, currentUser, buddyId, activeRound]);
 
@@ -271,7 +296,7 @@ const BuddyChat = () => {
           Chat with {buddy?.name || 'Buddy'}
         </ChatTitle>
       </ChatHeader>
-      
+
       {buddy && (
         <BuddyInfo>
           <BuddyName>{buddy.name}</BuddyName>
@@ -280,7 +305,7 @@ const BuddyChat = () => {
           </BuddyDetails>
         </BuddyInfo>
       )}
-      
+
       <ChatContent>
         <MessagesContainer>
           {loading ? (
@@ -290,21 +315,28 @@ const BuddyChat = () => {
           ) : conversationMessages.length === 0 ? (
             <LoadingMessage>Start chatting with {buddy?.name || 'your buddy'}!</LoadingMessage>
           ) : (
-            conversationMessages.map((msg, index) => (
-              <MessageBubble 
-                key={msg.id || index} 
-                isUser={msg.sender_type === 'user'}
-              >
-                {msg.content}
-                <MessageTime isUser={msg.sender_type === 'user'}>
-                  {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                </MessageTime>
-              </MessageBubble>
-            ))
+            <>
+              {conversationMessages.map((msg, index) => (
+                <MessageBubble 
+                  key={msg.id || index} 
+                  isUser={msg.sender_type === 'user'}
+                >
+                  {msg.content}
+                  <MessageTime isUser={msg.sender_type === 'user'}>
+                    {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </MessageTime>
+                </MessageBubble>
+              ))}
+              {isBuddyTyping && (
+                <TypingIndicator>
+                  {buddy?.name || 'Buddy'} is typing...
+                </TypingIndicator>
+              )}
+            </>
           )}
           <div ref={messagesEndRef} />
         </MessagesContainer>
-        
+
         <InputArea>
           <InputForm onSubmit={handleSendMessage}>
             <MessageInput

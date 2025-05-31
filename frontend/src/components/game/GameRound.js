@@ -114,9 +114,10 @@ const GameRound = () => {
     loading, 
     error, 
     fetchBuddies,
-    makeGuess
+    makeGuess,
+    returnToLobby
   } = useContext(GameContext);
-  
+
   const [showGuessModal, setShowGuessModal] = useState(false);
 
   // Redirect if not authenticated
@@ -135,10 +136,10 @@ const GameRound = () => {
 
   // Fetch buddies when component mounts
   useEffect(() => {
-    if (isAuthenticated && currentUser) {
+    if (isAuthenticated && currentUser && activeRound) {
       fetchBuddies();
     }
-  }, [isAuthenticated, currentUser, fetchBuddies]);
+  }, [isAuthenticated, currentUser, activeRound]);
 
   const handleBuddyClick = (buddyId) => {
     navigate(`/buddy/${buddyId}`);
@@ -155,7 +156,8 @@ const GameRound = () => {
     }
   };
 
-  const handleBackToChat = () => {
+  const handleBackToChat = async () => {
+    await returnToLobby();
     navigate('/chat');
   };
 
@@ -167,14 +169,14 @@ const GameRound = () => {
           <HeaderButton onClick={handleBackToChat}>Back to Chat</HeaderButton>
         </HeaderButtons>
       </GameHeader>
-      
+
       <GameContent>
         <GameInstructions>
           <h3>Find Your Secret Admirer!</h3>
           <p>One of these buddies is your secret admirer. Chat with them to gather clues and figure out who it is!</p>
           <p>When you're ready, click "Make a Guess" to select your secret admirer.</p>
         </GameInstructions>
-        
+
         {loading ? (
           <LoadingMessage>Loading buddies...</LoadingMessage>
         ) : error ? (
@@ -188,7 +190,7 @@ const GameRound = () => {
               onGuessSubmit={handleGuessSubmit}
               onCancelGuess={() => setShowGuessModal(false)}
             />
-            
+
             {!showGuessModal && (
               <GuessButton onClick={handleMakeGuess}>
                 Make a Guess

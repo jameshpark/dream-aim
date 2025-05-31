@@ -132,7 +132,7 @@ class ConversationMessageBase(BaseModel):
     sender_type: str  # "user" or "buddy"
 
 class ConversationMessageCreate(ConversationMessageBase):
-    conversation_id: int
+    pass
 
 class ConversationMessage(ConversationMessageBase):
     id: int

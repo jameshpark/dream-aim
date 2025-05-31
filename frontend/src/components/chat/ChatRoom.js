@@ -167,7 +167,7 @@ const ChatRoom = () => {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
-  
+
   const { currentUser, isAuthenticated, signOut } = useContext(AuthContext);
   const { 
     messages, 
@@ -178,7 +178,9 @@ const ChatRoom = () => {
     isConnected,
     activeRound,
     sendMessage,
-    startRound
+    startRound,
+    fetchLeader,
+    fetchChatUsers
   } = useContext(ChatContext);
 
   // Redirect if not authenticated
@@ -194,6 +196,18 @@ const ChatRoom = () => {
       navigate('/game');
     }
   }, [activeRound, navigate]);
+
+  // Periodically refresh leader and users list to ensure UI is up to date
+  useEffect(() => {
+    if (isAuthenticated && isConnected) {
+      const interval = setInterval(() => {
+        fetchLeader();
+        fetchChatUsers();
+      }, 5000); // Refresh every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, isConnected, fetchLeader, fetchChatUsers]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -215,7 +229,9 @@ const ChatRoom = () => {
     navigate('/');
   };
 
-  const isLeader = currentUser && leader && currentUser.id === leader.id;
+  // Check if current user is the leader - either by matching the leader object or by role
+  const isLeader = (currentUser && leader && currentUser.id === leader.id) || 
+                  (currentUser && currentUser.role === 'LEADER');
 
   return (
     <ChatWindow>
@@ -225,7 +241,7 @@ const ChatRoom = () => {
           <HeaderButton onClick={handleSignOut}>Sign Out</HeaderButton>
         </HeaderButtons>
       </ChatHeader>
-      
+
       <ChatContent>
         <MainChat>
           <ChatMessages>
@@ -244,7 +260,7 @@ const ChatRoom = () => {
             )}
             <div ref={messagesEndRef} />
           </ChatMessages>
-          
+
           <ChatInputArea>
             <ChatInputForm onSubmit={handleSendMessage}>
               <ChatInput
@@ -260,7 +276,7 @@ const ChatRoom = () => {
             </ChatInputForm>
           </ChatInputArea>
         </MainChat>
-        
+
         <Sidebar>
           <SidebarHeader>
             Users Online ({users.length})
@@ -273,15 +289,15 @@ const ChatRoom = () => {
               </StartRoundButton>
             )}
           </SidebarHeader>
-          
+
           <UserList users={users} currentUser={currentUser} leader={leader} />
-          
+
           {!isConnected && (
             <StatusMessage isError>
               Disconnected. Trying to reconnect...
             </StatusMessage>
           )}
-          
+
           {error && (
             <StatusMessage isError>
               {error}

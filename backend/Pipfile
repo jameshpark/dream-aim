@@ -11,7 +11,6 @@ sqlalchemy = "*"
 pydantic = "*"
 passlib = "*"
 python-multipart = "*"
-openai = "*"
 websockets = "*"
 bcrypt = "*"
 python-dotenv = "*"
@@ -20,6 +19,7 @@ starlette = "*"
 anyio = "*"
 pydantic-core = "*"
 pyjwt = "*"
+openai = "==0.28"
 
 [dev-packages]
 
