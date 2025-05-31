@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
           Authorization: `Bearer ${token}`
         }
       });
-      
+
       setCurrentUser(response.data);
       setIsAuthenticated(true);
       setLoading(false);
@@ -47,24 +47,24 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      
+
       const response = await axios.post(`${API_URL}/users/signin`, {
         screen_name: screenName,
         password: password
       });
-      
+
       const { access_token } = response.data;
-      
+
       // Store token in localStorage
       localStorage.setItem('token', access_token);
-      
+
       // Get user data
       await checkAuthStatus(access_token);
-      
+
       return true;
     } catch (error) {
       console.error('Sign in failed:', error);
-      setError(error.response?.data?.detail || 'Sign in failed. Please try again.');
+      setError(error.response?.data?.detail || 'Sign in failed. Please ensure you entered the correct passphrase.');
       setLoading(false);
       return false;
     }
@@ -75,17 +75,17 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      
+
       const response = await axios.post(`${API_URL}/users/`, {
         screen_name: screenName,
         password: password
       });
-      
+
       // After successful registration, sign in
       return await signIn(screenName, password);
     } catch (error) {
       console.error('Sign up failed:', error);
-      setError(error.response?.data?.detail || 'Sign up failed. Please try again.');
+      setError(error.response?.data?.detail || 'Sign up failed. Please ensure you entered the correct passphrase.');
       setLoading(false);
       return false;
     }
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (token) {
         await axios.post(`${API_URL}/users/signout`, {}, {
           headers: {

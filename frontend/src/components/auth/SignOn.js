@@ -104,19 +104,19 @@ const SignOn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!screenName || !password) {
       return;
     }
-    
+
     let success;
-    
+
     if (isSignUp) {
       success = await signUp(screenName, password);
     } else {
       success = await signIn(screenName, password);
     }
-    
+
     if (success) {
       navigate('/chat');
     }
@@ -132,7 +132,7 @@ const SignOn = () => {
         <Logo>Dream AIM</Logo>
         <Tagline>America Online Instant Messenger</Tagline>
       </SignOnHeader>
-      
+
       <Form onSubmit={handleSubmit}>
         <FormGroup>
           <Label htmlFor="screenName">Screen Name:</Label>
@@ -144,26 +144,27 @@ const SignOn = () => {
             required
           />
         </FormGroup>
-        
+
         <FormGroup>
-          <Label htmlFor="password">Password:</Label>
+          <Label htmlFor="password">Passphrase:</Label>
           <Input
             type="password"
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter the passphrase"
             required
           />
         </FormGroup>
-        
+
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        
+
         <ButtonGroup>
           <Button type="button" onClick={toggleMode}>
-            {isSignUp ? 'Sign In Instead' : 'Create Account'}
+            {isSignUp ? 'Sign In Instead' : 'Register Screen Name'}
           </Button>
           <Button type="submit" disabled={loading}>
-            {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign On'}
+            {loading ? 'Loading...' : isSignUp ? 'Register' : 'Sign On'}
           </Button>
         </ButtonGroup>
       </Form>

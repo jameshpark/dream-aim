@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import jwt
 from passlib.context import CryptContext
+import hashlib
 
 from app.database.database import get_db
 from app.models import models
@@ -14,6 +15,8 @@ from app.schemas import schemas
 SECRET_KEY = "your-secret-key"  # In production, use a secure secret key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+
+PASSPHRASE_HASH = "728739c127665628c61c698d11297879"
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -28,26 +31,23 @@ router = APIRouter(
 )
 
 # Helper functions
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
+def verify_password(plain_password):
+    return hashlib.md5(plain_password.encode()).hexdigest() == PASSPHRASE_HASH
 
 def authenticate_user(db: Session, screen_name: str, password: str):
     user = db.query(models.User).filter(models.User.screen_name == screen_name).first()
     if not user:
-        return False
-    if not verify_password(password, user.password):
+        return create_user(schemas.UserCreate(screen_name=screen_name, password=password), db)
+    if not verify_password(password):
         return False
     return user
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.now(UTC) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -78,7 +78,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect passphrase",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -89,11 +89,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @router.post("/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    # Verify that the provided password is the correct passphrase
+    if not verify_password(user.password):
+        raise HTTPException(status_code=400, detail="Incorrect passphrase")
+
     db_user = db.query(models.User).filter(models.User.screen_name == user.screen_name).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Screen name already registered")
-    hashed_password = get_password_hash(user.password)
-    db_user = models.User(screen_name=user.screen_name, password=hashed_password)
+
+    # Store the hash of the fixed passphrase
+    db_user = models.User(screen_name=user.screen_name, password=(PASSPHRASE_HASH))
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -121,18 +126,22 @@ def update_user(
 ):
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this user")
-    
+
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     user_data = user.dict(exclude_unset=True)
     if "password" in user_data:
-        user_data["password"] = get_password_hash(user_data["password"])
-    
+        # Verify that the provided password is the correct passphrase
+        if not verify_password(user_data["password"]):
+            raise HTTPException(status_code=400, detail="Incorrect passphrase")
+        # Store the hash of the fixed passphrase
+        user_data["password"] = PASSPHRASE_HASH
+
     for key, value in user_data.items():
         setattr(db_user, key, value)
-    
+
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -146,14 +155,14 @@ async def signin(user_data: schemas.UserLogin, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect screen name or password",
+            detail="Incorrect screen name or passphrase",
         )
-    
+
     # Update user status to online and in chat room
     user.location = schemas.UserLocation.CHAT_ROOM
     user.last_active = datetime.now()
     db.commit()
-    
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.screen_name}, expires_delta=access_token_expires
