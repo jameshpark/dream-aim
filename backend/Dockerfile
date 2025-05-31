@@ -23,32 +23,6 @@ RUN useradd -m appuser
 # Copy the rest of the application
 COPY . .
 
-# Create a wait-for-it script to ensure the database is ready
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-host="$1"\n\
-port="$2"\n\
-shift 2\n\
-cmd="$@"\n\
-\n\
-until nc -z "$host" "$port"; do\n\
-  >&2 echo "Waiting for $host:$port..."\n\
-  sleep 1\n\
-done\n\
-\n\
->&2 echo "$host:$port is available"\n\
-\n\
-exec $cmd' > /app/wait-for-it.sh
-
-# Create a script to initialize the database and start the server
-RUN echo '#!/bin/bash\n\
-echo "Checking database..."\n\
-python init_database.py\n\
-echo "Starting server..."\n\
-exec python run.py' > /app/start.sh
-
-RUN chmod +x /app/wait-for-it.sh /app/start.sh
 RUN chown -R appuser:appuser /app
 
 # Set environment variables
@@ -65,5 +39,5 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
-# Run the wait-for-it script and then the start script
-CMD ["/bin/bash", "-c", "/app/wait-for-it.sh db 5432 /app/start.sh"]
+# Run the database initialization and then the FastAPI server
+CMD ["bash", "-c", "python init_database.py && python run.py"]

@@ -19,10 +19,6 @@ services:
 
   backend:
     build: ./backend
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@db/dream_aim
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      SECRET_KEY: ${SECRET_KEY}
     ports:
       - "8000:8000"
     depends_on:
@@ -35,7 +31,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
 
 volumes:
   postgres_data:
