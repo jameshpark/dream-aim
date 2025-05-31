@@ -1,120 +1,165 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+import enum
+
+# Enums
+class UserLocation(str, enum.Enum):
+    OFFLINE = "OFFLINE"
+    CHAT_ROOM = "CHAT_ROOM"
+    ACTIVE_ROUND = "ACTIVE_ROUND"
+
+class UserRole(str, enum.Enum):
+    LEADER = "LEADER"
+    PLAYER = "PLAYER"
+
+class GuessState(str, enum.Enum):
+    TBD = "TBD"
+    CORRECT = "CORRECT"
+    INCORRECT = "INCORRECT"
+
+class RoundState(str, enum.Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
 
 # User schemas
 class UserBase(BaseModel):
-    username: str
+    screen_name: str
 
 class UserCreate(UserBase):
-    pass
+    password: str
 
-class User(UserBase):
+class UserLogin(UserBase):
+    password: str
+
+class UserUpdate(BaseModel):
+    screen_name: Optional[str] = None
+    password: Optional[str] = None
+    location: Optional[UserLocation] = None
+    role: Optional[UserRole] = None
+    guess_state: Optional[GuessState] = None
+    current_round_id: Optional[int] = None
+
+class UserInDB(UserBase):
     id: int
-    is_active: bool
+    location: UserLocation
+    role: UserRole
+    guess_state: GuessState
+    current_round_id: Optional[int] = None
     created_at: datetime
+    last_active: datetime
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        orm_mode = True
 
-# Boy schemas
-class BoyBase(BaseModel):
-    name: str
-    description: str
-
-class BoyCreate(BoyBase):
-    prompt: str
-
-class Boy(BoyBase):
-    id: int
-
-    model_config = {
-        "from_attributes": True
-    }
-
-# Game schemas
-class GameBase(BaseModel):
+class User(UserInDB):
     pass
 
-class GameCreate(GameBase):
-    pass
+# Message schemas
+class MessageBase(BaseModel):
+    content: str
 
-class Game(GameBase):
+class MessageCreate(MessageBase):
+    user_id: int
+
+class Message(MessageBase):
     id: int
-    is_active: bool
-    created_at: datetime
-    ended_at: Optional[datetime] = None
-    leader_id: int
-    secret_admirer_id: Optional[int] = None
+    user_id: int
+    timestamp: datetime
+    user: User
+
+    class Config:
+        orm_mode = True
+
+# Round schemas
+class RoundBase(BaseModel):
+    state: RoundState = RoundState.ACTIVE
+
+class RoundCreate(RoundBase):
+    secret_admirer: int
+
+class Round(RoundBase):
+    id: int
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    secret_admirer: int
     users: List[User] = []
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        orm_mode = True
 
-# Guess schemas
-class GuessBase(BaseModel):
-    boy_id: int
+# Buddy schemas
+class BuddyBase(BaseModel):
+    name: str
+    gender: str
+    sexual_orientation: str
+    gender_identity: str
+    video_games: str
+    tv_shows: str
+    music_artists: str
+    pet_preference: str
+    prompt: str
 
-class GuessCreate(GuessBase):
+class BuddyCreate(BuddyBase):
     pass
 
-class Guess(GuessBase):
+class Buddy(BuddyBase):
     id: int
+
+    class Config:
+        orm_mode = True
+
+# Conversation schemas
+class ConversationBase(BaseModel):
     user_id: int
-    game_id: int
-    is_correct: bool
-    created_at: datetime
+    buddy_id: int
+    round_id: int
 
-    model_config = {
-        "from_attributes": True
-    }
+class ConversationCreate(ConversationBase):
+    pass
 
-# Chat schemas
-class ChatBase(BaseModel):
-    message: str
-
-class ChatCreate(ChatBase):
-    boy_id: int
-    game_id: int
-
-class Chat(ChatBase):
+class Conversation(ConversationBase):
     id: int
-    user_id: int
-    game_id: int
-    boy_id: int
-    is_from_user: bool
     created_at: datetime
+    messages: List[Any] = []
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        orm_mode = True
+
+# Conversation message schemas
+class ConversationMessageBase(BaseModel):
+    content: str
+    sender_type: str  # "user" or "buddy"
+
+class ConversationMessageCreate(ConversationMessageBase):
+    conversation_id: int
+
+class ConversationMessage(ConversationMessageBase):
+    id: int
+    conversation_id: int
+    timestamp: datetime
+
+    class Config:
+        orm_mode = True
+
+# Update Conversation to use ConversationMessage
+Conversation.update_forward_refs()
+
+# Token schema for authentication
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
 
 # WebSocket message schemas
-class WSMessage(BaseModel):
+class WebSocketMessage(BaseModel):
     type: str
-    data: dict
+    content: Optional[Dict[str, Any]] = None
 
-# Game state schemas
-class WaitingRoom(BaseModel):
-    users: List[User]
-    leader_id: Optional[int] = None
-
-    model_config = {
-        "from_attributes": True
-    }
-
-class GameState(BaseModel):
-    id: int
-    is_active: bool
-    users: List[User]
-    leader_id: int
-    guesses: List[Guess] = []
-    winner_id: Optional[int] = None
-    secret_admirer_revealed: bool = False
-    secret_admirer_id: Optional[int] = None
-
-    model_config = {
-        "from_attributes": True
-    }
+# Response schemas
+class StandardResponse(BaseModel):
+    success: bool
+    message: str
+    data: Optional[Dict[str, Any]] = None

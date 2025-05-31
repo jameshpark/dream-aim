@@ -1,0 +1,28 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+uvicorn = "*"
+psycopg2-binary = "*"
+sqlalchemy = "*"
+pydantic = "*"
+python-jose = "*"
+passlib = "*"
+python-multipart = "*"
+openai = "*"
+websockets = "*"
+bcrypt = "*"
+python-dotenv = "*"
+jiter = "*"
+starlette = "*"
+anyio = "*"
+pydantic-core = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.13"
+python_full_version = "3.13.3"

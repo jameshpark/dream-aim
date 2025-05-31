@@ -1,74 +1,73 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import WaitingRoom from './pages/WaitingRoom';
-import Game from './pages/Game';
-import './styles/index.css';
+import React, { useContext } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthContext } from './context/AuthContext';
+import SignOn from './components/auth/SignOn';
+import ChatRoom from './components/chat/ChatRoom';
+import GameRound from './components/game/GameRound';
+import BuddyChat from './components/game/BuddyChat';
+import GuessResult from './components/game/GuessResult';
+import styled from 'styled-components';
+
+const AppContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: #f0f0f0;
+`;
+
+// Protected route component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useContext(AuthContext);
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check if user is already logged in
-  useEffect(() => {
-    const storedUser = localStorage.getItem('dreamAimUser');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('dreamAimUser');
-      }
-    }
-  }, []);
-
-  // Handle login
-  const handleLogin = (userData) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    localStorage.setItem('dreamAimUser', JSON.stringify(userData));
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('dreamAimUser');
-  };
-
   return (
-    <Router>
-      <div className="app">
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              isAuthenticated ? 
-                <Navigate to="/waiting-room" /> : 
-                <Login onLogin={handleLogin} />
-            } 
-          />
-          <Route 
-            path="/waiting-room" 
-            element={
-              isAuthenticated ? 
-                <WaitingRoom user={user} onLogout={handleLogout} /> : 
-                <Navigate to="/" />
-            } 
-          />
-          <Route 
-            path="/game/:gameId" 
-            element={
-              isAuthenticated ? 
-                <Game user={user} onLogout={handleLogout} /> : 
-                <Navigate to="/" />
-            } 
-          />
-        </Routes>
-      </div>
-    </Router>
+    <AppContainer>
+      <Routes>
+        <Route path="/" element={<SignOn />} />
+        <Route 
+          path="/chat" 
+          element={
+            <ProtectedRoute>
+              <ChatRoom />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/game" 
+          element={
+            <ProtectedRoute>
+              <GameRound />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/buddy/:buddyId" 
+          element={
+            <ProtectedRoute>
+              <BuddyChat />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/result" 
+          element={
+            <ProtectedRoute>
+              <GuessResult />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </AppContainer>
   );
 }
 

@@ -1,6 +1,6 @@
 {
   "short_name": "Dream AIM",
-  "name": "Dream AIM - Dream Phone meets AOL Instant Messenger",
+  "name": "Dream AIM - Electronic Dream Phone with AOL Instant Messenger UI",
   "icons": [
     {
       "src": "favicon.ico",
@@ -13,8 +13,8 @@
       "sizes": "192x192"
     },
     {
-      "src": "logo512.svg",
-      "type": "image/svg",
+      "src": "logo512.png",
+      "type": "image/png",
       "sizes": "512x512"
     }
   ],

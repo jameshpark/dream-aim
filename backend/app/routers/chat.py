@@ -1,78 +1,257 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Optional
+from datetime import datetime
 
-from ..database import get_db
-from ..models.models import Chat, User, Boy, Game
-from ..schemas.schemas import ChatCreate, Chat as ChatSchema
-from ..services.game import game_service
+from app.database.database import get_db
+from app.models import models
+from app.schemas import schemas
+from app.routers.users import get_current_user
 
 router = APIRouter(
-    prefix="/api/chat",
+    prefix="/chat",
     tags=["chat"],
     responses={404: {"description": "Not found"}},
 )
 
-@router.post("/", response_model=ChatSchema)
-async def send_message(chat: ChatCreate, user_id: int, db: Session = Depends(get_db)):
-    """Send a message to a boy and get a response."""
-    # Check if user exists
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+# Routes
+@router.get("/messages", response_model=List[schemas.Message])
+async def get_chat_messages(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get chat messages for the current user's location (chat room or active round)
+    """
+    # Get messages from users in the same location
+    messages = db.query(models.Message).join(
+        models.User, models.Message.user_id == models.User.id
+    ).filter(
+        models.User.location == current_user.location
+    ).order_by(
+        models.Message.timestamp.desc()
+    ).offset(skip).limit(limit).all()
     
-    # Send message and get response
-    response = await game_service.send_message(
-        db=db,
-        user_id=user_id,
-        game_id=chat.game_id,
-        boy_id=chat.boy_id,
-        message=chat.message
-    )
-    
-    if not response:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to send message. Make sure you are in the game and the boy exists."
-        )
-    
-    return response
+    return messages
 
-@router.get("/history/{game_id}/{user_id}/{boy_id}", response_model=List[ChatSchema])
-async def get_chat_history(game_id: int, user_id: int, boy_id: int, db: Session = Depends(get_db)):
-    """Get chat history between a user and a boy in a game."""
-    # Check if user exists
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+@router.post("/messages", response_model=schemas.Message)
+async def create_chat_message(
+    message: schemas.MessageCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Create a new chat message
+    """
+    # Ensure the user is creating a message for themselves
+    if message.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to create messages for other users")
     
-    # Check if boy exists
-    boy = db.query(Boy).filter(Boy.id == boy_id).first()
-    if not boy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Boy not found"
-        )
+    # Create the message
+    db_message = models.Message(
+        user_id=current_user.id,
+        content=message.content,
+        timestamp=datetime.now()
+    )
+    db.add(db_message)
+    db.commit()
+    db.refresh(db_message)
     
-    # Check if game exists
-    game = db.query(Game).filter(Game.id == game_id).first()
-    if not game:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Game not found"
-        )
+    return db_message
+
+@router.get("/users", response_model=List[schemas.User])
+async def get_chat_room_users(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get all users in the chat room
+    """
+    users = db.query(models.User).filter(
+        models.User.location == schemas.UserLocation.CHAT_ROOM
+    ).all()
     
-    # Get chat history
-    chats = db.query(Chat).filter(
-        Chat.game_id == game_id,
-        Chat.user_id == user_id,
-        Chat.boy_id == boy_id
-    ).order_by(Chat.created_at).all()
+    return users
+
+@router.get("/active-round-users", response_model=List[schemas.User])
+async def get_active_round_users(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get all users in the active round
+    """
+    if current_user.location != schemas.UserLocation.ACTIVE_ROUND:
+        raise HTTPException(status_code=403, detail="Not in an active round")
     
-    return chats
+    users = db.query(models.User).filter(
+        models.User.location == schemas.UserLocation.ACTIVE_ROUND,
+        models.User.current_round_id == current_user.current_round_id
+    ).all()
+    
+    return users
+
+@router.get("/leader", response_model=Optional[schemas.User])
+async def get_chat_room_leader(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get the current leader in the chat room
+    """
+    leader = db.query(models.User).filter(
+        models.User.location == schemas.UserLocation.CHAT_ROOM,
+        models.User.role == schemas.UserRole.LEADER
+    ).first()
+    
+    return leader
+
+@router.post("/conversations", response_model=schemas.Conversation)
+async def create_conversation(
+    conversation: schemas.ConversationCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Create a new conversation with a buddy
+    """
+    # Ensure the user is creating a conversation for themselves
+    if conversation.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to create conversations for other users")
+    
+    # Ensure the user is in an active round
+    if current_user.location != schemas.UserLocation.ACTIVE_ROUND:
+        raise HTTPException(status_code=403, detail="Not in an active round")
+    
+    # Check if the buddy exists
+    buddy = db.query(models.Buddy).filter(models.Buddy.id == conversation.buddy_id).first()
+    if not buddy:
+        raise HTTPException(status_code=404, detail="Buddy not found")
+    
+    # Check if the round exists
+    round = db.query(models.Round).filter(models.Round.id == conversation.round_id).first()
+    if not round:
+        raise HTTPException(status_code=404, detail="Round not found")
+    
+    # Check if a conversation already exists
+    existing_conversation = db.query(models.Conversation).filter(
+        models.Conversation.user_id == current_user.id,
+        models.Conversation.buddy_id == conversation.buddy_id,
+        models.Conversation.round_id == conversation.round_id
+    ).first()
+    
+    if existing_conversation:
+        return existing_conversation
+    
+    # Create the conversation
+    db_conversation = models.Conversation(
+        user_id=current_user.id,
+        buddy_id=conversation.buddy_id,
+        round_id=conversation.round_id,
+        created_at=datetime.now()
+    )
+    db.add(db_conversation)
+    db.commit()
+    db.refresh(db_conversation)
+    
+    return db_conversation
+
+@router.get("/conversations", response_model=List[schemas.Conversation])
+async def get_conversations(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get all conversations for the current user in the current round
+    """
+    if current_user.location != schemas.UserLocation.ACTIVE_ROUND:
+        raise HTTPException(status_code=403, detail="Not in an active round")
+    
+    conversations = db.query(models.Conversation).filter(
+        models.Conversation.user_id == current_user.id,
+        models.Conversation.round_id == current_user.current_round_id
+    ).all()
+    
+    return conversations
+
+@router.get("/conversations/{conversation_id}", response_model=schemas.Conversation)
+async def get_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get a specific conversation
+    """
+    conversation = db.query(models.Conversation).filter(
+        models.Conversation.id == conversation_id,
+        models.Conversation.user_id == current_user.id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    return conversation
+
+@router.post("/conversations/{conversation_id}/messages", response_model=schemas.ConversationMessage)
+async def create_conversation_message(
+    conversation_id: int,
+    message: schemas.ConversationMessageCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Create a new message in a conversation
+    """
+    # Ensure the conversation exists and belongs to the user
+    conversation = db.query(models.Conversation).filter(
+        models.Conversation.id == conversation_id,
+        models.Conversation.user_id == current_user.id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Create the message
+    db_message = models.ConversationMessage(
+        conversation_id=conversation_id,
+        sender_type=message.sender_type,
+        content=message.content,
+        timestamp=datetime.now()
+    )
+    db.add(db_message)
+    db.commit()
+    db.refresh(db_message)
+    
+    return db_message
+
+@router.get("/conversations/{conversation_id}/messages", response_model=List[schemas.ConversationMessage])
+async def get_conversation_messages(
+    conversation_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Get messages from a conversation
+    """
+    # Ensure the conversation exists and belongs to the user
+    conversation = db.query(models.Conversation).filter(
+        models.Conversation.id == conversation_id,
+        models.Conversation.user_id == current_user.id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Get the messages
+    messages = db.query(models.ConversationMessage).filter(
+        models.ConversationMessage.conversation_id == conversation_id
+    ).order_by(
+        models.ConversationMessage.timestamp.asc()
+    ).offset(skip).limit(limit).all()
+    
+    return messages
