@@ -35,7 +35,7 @@ const HeartIcon = styled.div`
   color: ${props => props.correct ? 'var(--success-color)' : 'var(--error-color)'};
   margin: 20px 0;
   animation: ${props => props.correct ? 'pulse 1.5s infinite' : 'none'};
-  
+
   @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.2); }
@@ -52,11 +52,11 @@ const RevealButton = styled.button`
   font-size: 18px;
   cursor: pointer;
   margin: 20px 0;
-  
+
   &:hover {
     background-color: #0055aa;
   }
-  
+
   &:active {
     border-style: inset;
     transform: translateY(1px);
@@ -76,11 +76,11 @@ const ReturnButton = styled.button`
   justify-content: center;
   gap: 10px;
   margin: 0 auto;
-  
+
   &:hover {
     background-color: #e0e0e0;
   }
-  
+
   &:active {
     border-style: inset;
     transform: translateY(1px);
@@ -138,7 +138,7 @@ const GuessResult = () => {
         height: window.innerHeight
       });
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -152,9 +152,12 @@ const GuessResult = () => {
     navigate('/chat');
   };
 
-  // Find the secret admirer buddy
-  const secretAdmirer = guessResult?.secret_admirer 
-    ? buddies.find(b => b.id === guessResult.secret_admirer) 
+  // Get the secret admirer name directly from the guessResult
+  const secretAdmirerName = guessResult?.secret_admirer || null;
+
+  // Find the secret admirer buddy if available
+  const secretAdmirerBuddy = secretAdmirerName && buddies.length > 0
+    ? buddies.find(b => b.name === secretAdmirerName) 
     : null;
 
   const isCorrect = guessResult?.correct;
@@ -170,54 +173,60 @@ const GuessResult = () => {
           gravity={0.2}
         />
       )}
-      
+
       <ResultTitle correct={isCorrect}>
         {isCorrect ? 'Congratulations!' : 'Sorry!'}
       </ResultTitle>
-      
+
       <HeartIcon correct={isCorrect}>
         <FaHeart />
       </HeartIcon>
-      
+
       <ResultMessage>
         {isCorrect 
           ? "You've found your secret admirer! They've been waiting for you all along!"
           : "That's not your secret admirer. Don't worry, you'll find love next time!"}
       </ResultMessage>
-      
+
       {!isCorrect && !showAdmirer && (
         <RevealButton onClick={handleRevealAdmirer}>
           Your secret admirer was...
         </RevealButton>
       )}
-      
-      {(!isCorrect && showAdmirer && secretAdmirer) && (
+
+      {(!isCorrect && showAdmirer) && (
         <SecretAdmirerInfo>
-          <AdmirerName>{secretAdmirer.name}</AdmirerName>
-          <AdmirerDetails>
-            <strong>Gender:</strong> {secretAdmirer.gender}
-          </AdmirerDetails>
-          <AdmirerDetails>
-            <strong>Sexual Orientation:</strong> {secretAdmirer.sexual_orientation}
-          </AdmirerDetails>
-          <AdmirerDetails>
-            <strong>Gender Identity:</strong> {secretAdmirer.gender_identity}
-          </AdmirerDetails>
-          <AdmirerDetails>
-            <strong>Video Games:</strong> {secretAdmirer.video_games}
-          </AdmirerDetails>
-          <AdmirerDetails>
-            <strong>TV Shows:</strong> {secretAdmirer.tv_shows}
-          </AdmirerDetails>
-          <AdmirerDetails>
-            <strong>Music Artists:</strong> {secretAdmirer.music_artists}
-          </AdmirerDetails>
-          <AdmirerDetails>
-            <strong>Pet Preference:</strong> {secretAdmirer.pet_preference}
-          </AdmirerDetails>
+          {secretAdmirerBuddy ? (
+            <>
+              <AdmirerName>{secretAdmirerBuddy.name}</AdmirerName>
+              <AdmirerDetails>
+                <strong>Gender:</strong> {secretAdmirerBuddy.gender}
+              </AdmirerDetails>
+              <AdmirerDetails>
+                <strong>Sexual Orientation:</strong> {secretAdmirerBuddy.sexual_orientation}
+              </AdmirerDetails>
+              <AdmirerDetails>
+                <strong>Gender Identity:</strong> {secretAdmirerBuddy.gender_identity}
+              </AdmirerDetails>
+              <AdmirerDetails>
+                <strong>Video Games:</strong> {secretAdmirerBuddy.video_games}
+              </AdmirerDetails>
+              <AdmirerDetails>
+                <strong>TV Shows:</strong> {secretAdmirerBuddy.tv_shows}
+              </AdmirerDetails>
+              <AdmirerDetails>
+                <strong>Music Artists:</strong> {secretAdmirerBuddy.music_artists}
+              </AdmirerDetails>
+              <AdmirerDetails>
+                <strong>Pet Preference:</strong> {secretAdmirerBuddy.pet_preference}
+              </AdmirerDetails>
+            </>
+          ) : (
+            <AdmirerName>{secretAdmirerName}</AdmirerName>
+          )}
         </SecretAdmirerInfo>
       )}
-      
+
       <ReturnButton onClick={handleReturnToLobby}>
         Return to Lobby <FaArrowRight />
       </ReturnButton>
