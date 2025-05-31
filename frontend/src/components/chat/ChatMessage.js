@@ -34,11 +34,15 @@ const ChatMessage = ({ message, isCurrentUser }) => {
     ? format(new Date(message.timestamp), 'h:mm a')
     : '';
 
+  // Get username from message - either directly from username property
+  // or from the user object if it exists
+  const username = message.username || (message.user && message.user.screen_name) || 'Unknown User';
+
   return (
     <MessageContainer>
       <MessageHeader>
         <Username isCurrentUser={isCurrentUser}>
-          {message.username || 'Unknown User'}
+          {username}
         </Username>
         <Timestamp>{formattedTime}</Timestamp>
       </MessageHeader>

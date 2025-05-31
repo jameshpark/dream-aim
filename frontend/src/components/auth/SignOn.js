@@ -91,8 +91,7 @@ const ErrorMessage = styled.div`
 const SignOn = () => {
   const [screenName, setScreenName] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp, isAuthenticated, loading, error } = useContext(AuthContext);
+  const { signIn, isAuthenticated, loading, error } = useContext(AuthContext);
   const navigate = useNavigate();
 
   // Redirect if already authenticated
@@ -109,21 +108,11 @@ const SignOn = () => {
       return;
     }
 
-    let success;
-
-    if (isSignUp) {
-      success = await signUp(screenName, password);
-    } else {
-      success = await signIn(screenName, password);
-    }
+    const success = await signIn(screenName, password);
 
     if (success) {
       navigate('/chat');
     }
-  };
-
-  const toggleMode = () => {
-    setIsSignUp(!isSignUp);
   };
 
   return (
@@ -160,11 +149,8 @@ const SignOn = () => {
         {error && <ErrorMessage>{error}</ErrorMessage>}
 
         <ButtonGroup>
-          <Button type="button" onClick={toggleMode}>
-            {isSignUp ? 'Sign In Instead' : 'Register Screen Name'}
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Loading...' : isSignUp ? 'Register' : 'Sign On'}
+          <Button type="submit" disabled={loading} style={{ margin: '0 auto' }}>
+            {loading ? 'Loading...' : 'Sign On'}
           </Button>
         </ButtonGroup>
       </Form>

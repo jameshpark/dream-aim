@@ -13,9 +13,9 @@ export const ChatProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [activeRound, setActiveRound] = useState(null);
-  
+
   const socketRef = useRef(null);
-  
+
   // API URL from environment variable
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
@@ -24,13 +24,13 @@ export const ChatProvider = ({ children }) => {
   useEffect(() => {
     if (isAuthenticated && currentUser) {
       connectWebSocket();
-      
+
       // Fetch initial data
       fetchChatMessages();
       fetchChatUsers();
       fetchLeader();
       fetchActiveRound();
-      
+
       return () => {
         // Disconnect WebSocket on unmount
         if (socketRef.current) {
@@ -44,23 +44,23 @@ export const ChatProvider = ({ children }) => {
   const connectWebSocket = () => {
     const token = localStorage.getItem('token');
     if (!token || !currentUser) return;
-    
+
     const socket = new WebSocket(`${WS_URL}/ws/${currentUser.id}`);
-    
+
     socket.onopen = () => {
       console.log('WebSocket connected');
       setIsConnected(true);
     };
-    
+
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       handleWebSocketMessage(data);
     };
-    
+
     socket.onclose = () => {
       console.log('WebSocket disconnected');
       setIsConnected(false);
-      
+
       // Attempt to reconnect after a delay
       setTimeout(() => {
         if (isAuthenticated && currentUser) {
@@ -68,12 +68,12 @@ export const ChatProvider = ({ children }) => {
         }
       }, 3000);
     };
-    
+
     socket.onerror = (error) => {
       console.error('WebSocket error:', error);
       setIsConnected(false);
     };
-    
+
     socketRef.current = socket;
   };
 
@@ -92,19 +92,19 @@ export const ChatProvider = ({ children }) => {
           ...prevMessages
         ]);
         break;
-        
+
       case 'user_status':
         // Refresh user list when a user connects or disconnects
         fetchChatUsers();
         break;
-        
+
       case 'leader_assigned':
         setLeader({
           id: data.leader_id,
           screen_name: data.leader_name
         });
         break;
-        
+
       case 'round_started':
         setActiveRound({
           id: data.round_id,
@@ -112,7 +112,7 @@ export const ChatProvider = ({ children }) => {
         });
         // Redirect to game page will be handled by the component
         break;
-        
+
       case 'round_ended':
         setActiveRound(null);
         // Refresh user list
@@ -120,7 +120,7 @@ export const ChatProvider = ({ children }) => {
         // Refresh leader
         fetchLeader();
         break;
-        
+
       default:
         console.log('Unknown message type:', data.type);
     }
@@ -133,7 +133,7 @@ export const ChatProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/chat/messages`, {
         headers: getAuthHeader()
       });
-      
+
       setMessages(response.data);
       setLoading(false);
     } catch (error) {
@@ -149,7 +149,7 @@ export const ChatProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/chat/users`, {
         headers: getAuthHeader()
       });
-      
+
       setUsers(response.data);
     } catch (error) {
       console.error('Failed to fetch chat users:', error);
@@ -163,7 +163,7 @@ export const ChatProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/chat/leader`, {
         headers: getAuthHeader()
       });
-      
+
       setLeader(response.data);
     } catch (error) {
       console.error('Failed to fetch leader:', error);
@@ -177,7 +177,7 @@ export const ChatProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/game/rounds/active`, {
         headers: getAuthHeader()
       });
-      
+
       setActiveRound(response.data);
     } catch (error) {
       console.error('Failed to fetch active round:', error);
@@ -190,15 +190,27 @@ export const ChatProvider = ({ children }) => {
   const sendMessage = async (content) => {
     try {
       if (!content.trim()) return;
-      
+
+      // Add the message to the UI immediately with a temporary ID
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        user_id: currentUser.id,
+        username: currentUser.screen_name,
+        content: content,
+        timestamp: new Date().toISOString()
+      };
+
+      setMessages(prevMessages => [tempMessage, ...prevMessages]);
+
+      // Send the message to the server
       await axios.post(`${API_URL}/chat/messages`, {
         user_id: currentUser.id,
         content: content
       }, {
         headers: getAuthHeader()
       });
-      
-      // The message will be added to the state via WebSocket
+
+      // The actual message with server ID will be added via WebSocket
     } catch (error) {
       console.error('Failed to send message:', error);
       setError('Failed to send message. Please try again.');
@@ -211,14 +223,14 @@ export const ChatProvider = ({ children }) => {
       if (!currentUser || currentUser.role !== 'LEADER') {
         throw new Error('Only the leader can start a round');
       }
-      
+
       // Send WebSocket message to start round
       if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({
           type: 'start_round'
         }));
       }
-      
+
       return true;
     } catch (error) {
       console.error('Failed to start round:', error);

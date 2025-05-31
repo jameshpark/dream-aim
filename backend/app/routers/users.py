@@ -37,10 +37,16 @@ def verify_password(plain_password):
 def authenticate_user(db: Session, screen_name: str, password: str):
     user = db.query(models.User).filter(models.User.screen_name == screen_name).first()
     if not user:
-        return create_user(schemas.UserCreate(screen_name=screen_name, password=password), db)
-    if not verify_password(password):
-        return False
-    return user
+        # If user doesn't exist, create a new one
+        if verify_password(password):
+            return create_user(schemas.UserCreate(screen_name=screen_name, password=password), db)
+        else:
+            return False
+    else:
+        # If user exists, just verify the password
+        if not verify_password(password):
+            return False
+        return user
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
@@ -93,11 +99,13 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if not verify_password(user.password):
         raise HTTPException(status_code=400, detail="Incorrect passphrase")
 
+    # Check if user already exists
     db_user = db.query(models.User).filter(models.User.screen_name == user.screen_name).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Screen name already registered")
+        # If user exists, just return the existing user
+        return db_user
 
-    # Store the hash of the fixed passphrase
+    # Create new user with the fixed passphrase hash
     db_user = models.User(screen_name=user.screen_name, password=PASSPHRASE_HASH)
     db.add(db_user)
     db.commit()
