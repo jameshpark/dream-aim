@@ -131,8 +131,8 @@ async def create_conversation(
         raise HTTPException(status_code=404, detail="Buddy not found")
     
     # Check if the round exists
-    round = db.query(models.Round).filter(models.Round.id == conversation.round_id).first()
-    if not round:
+    game_round = db.query(models.Round).filter(models.Round.id == conversation.round_id).first()
+    if not game_round:
         raise HTTPException(status_code=404, detail="Round not found")
     
     # Check if a conversation already exists

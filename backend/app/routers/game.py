@@ -42,11 +42,11 @@ async def generate_buddy_response(conversation_id: int, user_message: str, db: S
         return
     
     # Get the round
-    round = db.query(models.Round).filter(
+    game_round = db.query(models.Round).filter(
         models.Round.id == conversation.round_id
     ).first()
     
-    if not round:
+    if not game_round:
         return
     
     # Get all previous messages in the conversation
@@ -60,8 +60,8 @@ async def generate_buddy_response(conversation_id: int, user_message: str, db: S
     conversation_history = []
     
     # Add the system prompt
-    is_secret_admirer = buddy.id == round.secret_admirer
-    system_prompt = f"{buddy.prompt}\n\nYou are {'the secret admirer' if is_secret_admirer else 'not the secret admirer'}. The secret admirer in this round is buddy #{round.secret_admirer}."
+    is_secret_admirer = buddy.id == game_round.secret_admirer
+    system_prompt = f"{buddy.prompt}\n\nYou are {'the secret admirer' if is_secret_admirer else 'not the secret admirer'}. The secret admirer in this round is buddy #{game_round.secret_admirer}."
     conversation_history.append({"role": "system", "content": system_prompt})
     
     # Add the conversation history
@@ -133,7 +133,7 @@ async def get_active_round(
 
 @router.post("/rounds", response_model=schemas.Round)
 async def create_round(
-    round: schemas.RoundCreate,
+    game_round: schemas.RoundCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -160,7 +160,7 @@ async def create_round(
     db_round = models.Round(
         state=schemas.RoundState.ACTIVE,
         start_time=datetime.now(),
-        secret_admirer=round.secret_admirer
+        secret_admirer=game_round.secret_admirer
     )
     db.add(db_round)
     db.commit()
@@ -186,12 +186,12 @@ async def start_round(
         raise HTTPException(status_code=403, detail="Must be in the chat room to start a round")
     
     # Get the round
-    round = db.query(models.Round).filter(models.Round.id == round_id).first()
-    if not round:
+    game_round = db.query(models.Round).filter(models.Round.id == round_id).first()
+    if not game_round:
         raise HTTPException(status_code=404, detail="Round not found")
     
     # Ensure the round is not already active
-    if round.state == schemas.RoundState.ACTIVE:
+    if game_round.state == schemas.RoundState.ACTIVE:
         raise HTTPException(status_code=400, detail="Round is already active")
     
     # Get all users in the chat room
@@ -204,15 +204,15 @@ async def start_round(
         user.location = schemas.UserLocation.ACTIVE_ROUND
         user.role = schemas.UserRole.PLAYER  # Everyone becomes a player in the round
         user.guess_state = schemas.GuessState.TBD
-        user.current_round_id = round.id
+        user.current_round_id = game_round.id
     
     # Update the round state
-    round.state = schemas.RoundState.ACTIVE
+    game_round.state = schemas.RoundState.ACTIVE
     
     db.commit()
-    db.refresh(round)
+    db.refresh(game_round)
     
-    return round
+    return game_round
 
 @router.post("/rounds/{round_id}/end", response_model=schemas.Round)
 async def end_round(
@@ -224,18 +224,18 @@ async def end_round(
     End a round and move all users back to the chat room
     """
     # Get the round
-    round = db.query(models.Round).filter(models.Round.id == round_id).first()
-    if not round:
+    game_round = db.query(models.Round).filter(models.Round.id == round_id).first()
+    if not game_round:
         raise HTTPException(status_code=404, detail="Round not found")
     
     # Ensure the round is active
-    if round.state != schemas.RoundState.ACTIVE:
+    if game_round.state != schemas.RoundState.ACTIVE:
         raise HTTPException(status_code=400, detail="Round is not active")
     
     # Get all users in the active round
     active_round_users = db.query(models.User).filter(
         models.User.location == schemas.UserLocation.ACTIVE_ROUND,
-        models.User.current_round_id == round.id
+        models.User.current_round_id == game_round.id
     ).all()
     
     # Move all users back to the chat room
@@ -245,13 +245,13 @@ async def end_round(
         user.current_round_id = None
     
     # Update the round state
-    round.state = schemas.RoundState.INACTIVE
-    round.end_time = datetime.now()
+    game_round.state = schemas.RoundState.INACTIVE
+    game_round.end_time = datetime.now()
     
     db.commit()
-    db.refresh(round)
+    db.refresh(game_round)
     
-    return round
+    return game_round
 
 @router.get("/buddies", response_model=List[schemas.Buddy])
 async def get_buddies(
@@ -312,16 +312,16 @@ async def make_guess(
         raise HTTPException(status_code=400, detail="Already made a guess")
     
     # Get the current round
-    round = db.query(models.Round).filter(
+    game_round = db.query(models.Round).filter(
         models.Round.id == current_user.current_round_id,
         models.Round.state == schemas.RoundState.ACTIVE
     ).first()
     
-    if not round:
+    if not game_round:
         raise HTTPException(status_code=404, detail="Active round not found")
     
     # Check if the guess is correct
-    is_correct = (guess == round.secret_admirer)
+    is_correct = (guess == game_round.secret_admirer)
     
     # Update the user's guess state
     current_user.guess_state = schemas.GuessState.CORRECT if is_correct else schemas.GuessState.INCORRECT
@@ -333,7 +333,7 @@ async def make_guess(
         "message": "Guess recorded",
         "data": {
             "correct": is_correct,
-            "secret_admirer": round.secret_admirer if not is_correct else None
+            "secret_admirer": game_round.secret_admirer if not is_correct else None
         }
     }
 
@@ -363,13 +363,13 @@ async def return_to_lobby(
     
     if not active_users:
         # End the round if no users are left
-        round = db.query(models.Round).filter(
+        game_round = db.query(models.Round).filter(
             models.Round.id == current_user.current_round_id
         ).first()
         
-        if round:
-            round.state = schemas.RoundState.INACTIVE
-            round.end_time = datetime.now()
+        if game_round:
+            game_round.state = schemas.RoundState.INACTIVE
+            game_round.end_time = datetime.now()
             db.commit()
     
     return {

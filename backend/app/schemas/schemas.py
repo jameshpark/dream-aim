@@ -143,7 +143,7 @@ class ConversationMessage(ConversationMessageBase):
         orm_mode = True
 
 # Update Conversation to use ConversationMessage
-Conversation.update_forward_refs()
+Conversation.model_rebuild()
 
 # Token schema for authentication
 class Token(BaseModel):

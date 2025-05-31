@@ -98,7 +98,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Screen name already registered")
 
     # Store the hash of the fixed passphrase
-    db_user = models.User(screen_name=user.screen_name, password=(PASSPHRASE_HASH))
+    db_user = models.User(screen_name=user.screen_name, password=PASSPHRASE_HASH)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -131,7 +131,7 @@ def update_user(
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user_data = user.dict(exclude_unset=True)
+    user_data = user.model_dump(exclude_unset=True)
     if "password" in user_data:
         # Verify that the provided password is the correct passphrase
         if not verify_password(user_data["password"]):

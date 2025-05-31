@@ -9,7 +9,6 @@ uvicorn = "*"
 psycopg2-binary = "*"
 sqlalchemy = "*"
 pydantic = "*"
-python-jose = "*"
 passlib = "*"
 python-multipart = "*"
 openai = "*"
@@ -20,6 +19,7 @@ jiter = "*"
 starlette = "*"
 anyio = "*"
 pydantic-core = "*"
+pyjwt = "*"
 
 [dev-packages]
 

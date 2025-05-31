@@ -206,12 +206,12 @@ async def handle_guess(user_id: int, guess: int, db: Session):
         return
     
     # Get the current round
-    round = db.query(models.Round).filter(models.Round.id == active_round).first()
-    if not round or round.state != "ACTIVE":
+    game_round = db.query(models.Round).filter(models.Round.id == active_round).first()
+    if not game_round or game_round.state != "ACTIVE":
         return
     
     # Check if the guess is correct
-    is_correct = (guess == round.secret_admirer)
+    is_correct = (guess == game_round.secret_admirer)
     user.guess_state = "CORRECT" if is_correct else "INCORRECT"
     db.commit()
     
@@ -220,7 +220,7 @@ async def handle_guess(user_id: int, guess: int, db: Session):
         await active_connections[user_id].send_text(json.dumps({
             "type": "guess_result",
             "correct": is_correct,
-            "secret_admirer": round.secret_admirer if not is_correct else None
+            "secret_admirer": game_round.secret_admirer if not is_correct else None
         }))
     
     # Check if all users have made their guesses
@@ -281,19 +281,19 @@ async def end_round(db: Session):
         return
     
     # Get the current round
-    round = db.query(models.Round).filter(models.Round.id == active_round).first()
-    if not round:
+    game_round = db.query(models.Round).filter(models.Round.id == active_round).first()
+    if not game_round:
         active_round = None
         return
     
     # Mark the round as inactive
-    round.state = "INACTIVE"
-    round.end_time = datetime.now()
+    game_round.state = "INACTIVE"
+    game_round.end_time = datetime.now()
     
     # Return all users to the lobby
     active_users = db.query(models.User).filter(
         models.User.location == "ACTIVE_ROUND",
-        models.User.current_round_id == round.id
+        models.User.current_round_id == game_round.id
     ).all()
     
     for user in active_users:
@@ -309,7 +309,7 @@ async def end_round(db: Session):
         if user.id in active_connections:
             await active_connections[user.id].send_text(json.dumps({
                 "type": "round_ended",
-                "round_id": round.id
+                "round_id": game_round.id
             }))
     
     # Check if leader needs to be reassigned

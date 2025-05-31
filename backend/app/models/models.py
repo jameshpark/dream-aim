@@ -3,8 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 
-from ..database.database import Base
-# from app.database.database import Base
+from app.database.database import Base
 
 # Enums for user location, role, and guess state
 class UserLocation(str, enum.Enum):
