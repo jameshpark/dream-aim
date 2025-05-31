@@ -119,6 +119,61 @@ This application allows multiple players (up to 50) to play a game where they tr
 7. After all users have made their guesses or the round times out, users return to the chat room
 8. The process repeats
 
+## Docker Setup
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+
+### Running with Docker
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/dream-aim.git
+   cd dream-aim
+   ```
+
+2. Set up environment variables:
+   Create a `.env` file in the root directory with the following variables:
+   ```
+   OPENAI_API_KEY=your_openai_api_key
+   SECRET_KEY=your_secret_key_for_jwt
+   ```
+
+3. Build and start the containers:
+   ```
+   docker-compose up -d
+   ```
+   This will:
+   - Start a PostgreSQL database
+   - Build and start the backend FastAPI application
+   - Initialize the database if it's empty
+   - The backend will automatically wait for the database to be ready before starting
+
+4. The backend API will be available at http://localhost:8000
+   The frontend development server can be started separately:
+   ```
+   cd frontend
+   npm install
+   npm start
+   ```
+
+5. To stop the containers:
+   ```
+   docker-compose down
+   ```
+
+6. To view logs:
+   ```
+   docker-compose logs -f
+   ```
+
+7. To rebuild the containers after making changes to the Dockerfile:
+   ```
+   docker-compose up -d --build
+   ```
+
 ## License
 
 MIT
