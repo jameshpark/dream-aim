@@ -161,7 +161,7 @@ export const GameProvider = ({ children }) => {
         throw new Error('No active round');
       }
 
-      const response = await axios.post(`${API_URL}/game/guess`, buddyId, {
+      const response = await axios.post(`${API_URL}/game/guess/${buddyId}`, {}, {
         headers: getAuthHeader()
       });
 

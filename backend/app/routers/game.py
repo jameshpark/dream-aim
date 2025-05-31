@@ -297,9 +297,9 @@ async def create_buddy(
     
     return db_buddy
 
-@router.post("/guess", response_model=schemas.StandardResponse)
+@router.post("/guess/{buddy_id}", response_model=schemas.StandardResponse)
 async def make_guess(
-    guess: int,
+    buddy_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -319,13 +319,17 @@ async def make_guess(
         models.Round.id == current_user.current_round_id,
         models.Round.state == schemas.RoundState.ACTIVE
     ).first()
-    
+
+    secret_admirer = db.query(models.Buddy).filter(
+        models.Buddy.id == buddy_id
+    ).first()
+
     if not game_round:
         raise HTTPException(status_code=404, detail="Active round not found")
     
     # Check if the guess is correct
-    is_correct = (guess == game_round.secret_admirer)
-    
+    is_correct = (secret_admirer.id == game_round.secret_admirer)
+
     # Update the user's guess state
     current_user.guess_state = schemas.GuessState.CORRECT if is_correct else schemas.GuessState.INCORRECT
     db.commit()
@@ -336,7 +340,7 @@ async def make_guess(
         "message": "Guess recorded",
         "data": {
             "correct": is_correct,
-            "secret_admirer": game_round.secret_admirer if not is_correct else None
+            "secret_admirer": secret_admirer.name
         }
     }
 
