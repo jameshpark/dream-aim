@@ -180,7 +180,8 @@ const ChatRoom = () => {
     sendMessage,
     startRound,
     fetchLeader,
-    fetchChatUsers
+    fetchChatUsers,
+    fetchChatMessages
   } = useContext(ChatContext);
 
   // Redirect if not authenticated
@@ -197,17 +198,18 @@ const ChatRoom = () => {
     }
   }, [activeRound, navigate]);
 
-  // Periodically refresh leader and users list to ensure UI is up to date
+  // Periodically refresh leader, users list, and messages to ensure UI is up to date
   useEffect(() => {
     if (isAuthenticated && isConnected) {
       const interval = setInterval(() => {
         fetchLeader();
         fetchChatUsers();
+        fetchChatMessages(); // Also refresh messages
       }, 5000); // Refresh every 5 seconds
 
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated, isConnected, fetchLeader, fetchChatUsers]);
+  }, [isAuthenticated, isConnected, fetchLeader, fetchChatUsers, fetchChatMessages]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
