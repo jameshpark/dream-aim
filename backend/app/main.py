@@ -13,6 +13,9 @@ from app.models import models
 from app.schemas import schemas
 from app.routers import users, chat, game
 
+logger = logging.getLogger("app")
+logger.setLevel(logging.INFO)
+
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
@@ -63,8 +66,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
 
             # Handle different message types
             if message_data["type"] == "chat_message":
+                logger.info(f"Received chat message from user {user_id}: {message_data}")
                 await handle_chat_message(user_id, message_data["content"], db)
             elif message_data["type"] == "start_round":
+                logger.info(f"Received start round request from user {user_id}: {message_data}")
                 # Check if user is leader either by role or by being the only leader in the chat room
                 is_leader = user.role == "LEADER"
                 if not is_leader:
@@ -78,11 +83,15 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                 if is_leader:
                     await start_new_round(db)
             elif message_data["type"] == "make_guess":
+                logger.info(f"Received make guess request from user {user_id}: {message_data}")
                 await handle_guess(user_id, message_data["guess"], db)
             elif message_data["type"] == "return_to_lobby":
+                logger.info(f"Received return to lobby request from user {user_id}: {message_data}")
                 await return_user_to_lobby(user_id, db)
 
     except WebSocketDisconnect:
+        logger.info(f"Disconnected from user {user_id}")
+
         # Handle disconnection
         if user_id in active_connections:
             del active_connections[user_id]
@@ -198,16 +207,22 @@ async def start_new_round(db: Session):
     if not chat_room_users:
         return
 
-    # Create a new round
-    new_round = models.Round(
-        state="ACTIVE",
-        start_time=datetime.now(),
-        secret_admirer=random.randint(1, 10)  # Randomly select a secret admirer from the 10 buddies
-    )
-    db.add(new_round)
-    db.commit()
+    # Get the leader
+    leader = db.query(models.User).filter(
+        models.User.role == "LEADER",
+        models.User.location == "CHAT_ROOM"
+    ).first()
 
-    active_round = new_round.id
+    if not leader:
+        return
+
+    # Create a new round using the game router's create_round function
+    from app.routers.game import create_round
+    from app.schemas.schemas import RoundCreate
+
+    # Create a round with a random secret admirer (1-10)
+    round_data = RoundCreate(secret_admirer=random.randint(1, 10))
+    new_round = await create_round(round_data, db, leader)
 
     # Move all users to the active round
     for user in chat_room_users:
@@ -217,6 +232,7 @@ async def start_new_round(db: Session):
         user.current_round_id = new_round.id
 
     db.commit()
+    active_round = new_round.id
 
     # Notify all users about the new round
     for user in chat_room_users:

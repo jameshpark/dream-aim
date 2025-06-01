@@ -320,7 +320,7 @@ async def make_guess(
         models.Round.state == schemas.RoundState.ACTIVE
     ).first()
 
-    secret_admirer = db.query(models.Buddy).filter(
+    guessed_secret_admirer = db.query(models.Buddy).filter(
         models.Buddy.id == buddy_id
     ).first()
 
@@ -328,11 +328,15 @@ async def make_guess(
         raise HTTPException(status_code=404, detail="Active round not found")
     
     # Check if the guess is correct
-    is_correct = (secret_admirer.id == game_round.secret_admirer)
+    is_correct = (guessed_secret_admirer.id == game_round.secret_admirer)
 
     # Update the user's guess state
     current_user.guess_state = schemas.GuessState.CORRECT if is_correct else schemas.GuessState.INCORRECT
     db.commit()
+
+    actual_secret_admirer = db.query(models.Buddy).filter(
+        models.Buddy.id == game_round.secret_admirer
+    ).first()
     
     # Return the result
     return {
@@ -340,7 +344,7 @@ async def make_guess(
         "message": "Guess recorded",
         "data": {
             "correct": is_correct,
-            "secret_admirer": secret_admirer.name
+            "secret_admirer": actual_secret_admirer.name
         }
     }
 
