@@ -108,7 +108,7 @@ const ErrorMessage = styled.div`
 const GameRound = () => {
   const navigate = useNavigate();
   const { currentUser, isAuthenticated } = useContext(AuthContext);
-  const { activeRound } = useContext(ChatContext);
+  const { activeRound, clearActiveRound } = useContext(ChatContext);
   const { 
     buddies, 
     loading, 
@@ -158,6 +158,7 @@ const GameRound = () => {
 
   const handleBackToChat = async () => {
     await returnToLobby();
+    clearActiveRound(); // Update ChatContext to prevent redirect back to game
     navigate('/chat');
   };
 

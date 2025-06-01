@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import Confetti from 'react-confetti';
 import { AuthContext } from '../../context/AuthContext';
 import { GameContext } from '../../context/GameContext';
+import { ChatContext } from '../../context/ChatContext';
 import { FaHeart, FaArrowRight } from 'react-icons/fa';
 
 const ResultWindow = styled.div`
@@ -110,6 +111,7 @@ const GuessResult = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useContext(AuthContext);
   const { guessResult, buddies, returnToLobby } = useContext(GameContext);
+  const { clearActiveRound } = useContext(ChatContext);
   const [showAdmirer, setShowAdmirer] = useState(false);
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
@@ -149,6 +151,7 @@ const GuessResult = () => {
 
   const handleReturnToLobby = async () => {
     await returnToLobby();
+    clearActiveRound(); // Update ChatContext to prevent redirect back to game
     navigate('/chat');
   };
 

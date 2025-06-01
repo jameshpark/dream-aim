@@ -355,6 +355,8 @@ async def return_to_lobby(
     # Ensure the user is in an active round
     if current_user.location != schemas.UserLocation.ACTIVE_ROUND:
         raise HTTPException(status_code=403, detail="Not in an active round")
+
+    current_round_id = current_user.current_round_id
     
     # Move the user back to the chat room
     current_user.location = schemas.UserLocation.CHAT_ROOM
@@ -365,13 +367,13 @@ async def return_to_lobby(
     # Check if there are any users left in the round
     active_users = db.query(models.User).filter(
         models.User.location == schemas.UserLocation.ACTIVE_ROUND,
-        models.User.current_round_id == current_user.current_round_id
+        models.User.current_round_id == current_round_id
     ).all()
     
     if not active_users:
         # End the round if no users are left
         game_round = db.query(models.Round).filter(
-            models.Round.id == current_user.current_round_id
+            models.Round.id == current_round_id
         ).first()
         
         if game_round:

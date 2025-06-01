@@ -192,6 +192,10 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  const clearActiveRound = async () => {
+    setActiveRound(null)
+  }
+
   // Send a chat message
   const sendMessage = async (content) => {
     try {
@@ -264,7 +268,8 @@ export const ChatProvider = ({ children }) => {
         fetchChatMessages,
         fetchChatUsers,
         fetchLeader,
-        fetchActiveRound
+        fetchActiveRound,
+        clearActiveRound
       }}
     >
       {children}
