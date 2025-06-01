@@ -2,90 +2,127 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { AuthContext } from '../../context/AuthContext';
+import splashImage from '../../assets/images/splash.png';
+import signOnButtonImage from '../../assets/images/sign-on.png';
 
 const SignOnWindow = styled.div`
-  background-color: var(--window-bg);
-  border: 2px solid var(--window-border);
-  border-radius: 5px;
-  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2);
+  background-color: #B2B1B3;
+  border: 2px solid #000000;
   width: 100%;
   max-width: 400px;
-  padding: 20px;
   margin: 0 auto;
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2);
 `;
 
-const SignOnHeader = styled.div`
-  text-align: center;
-  margin-bottom: 20px;
+const TitleBar = styled.div`
+  background-color: #170774;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 3px;
+  height: 22px;
 `;
 
-const Logo = styled.h1`
-  font-size: 32px;
-  color: var(--primary-color);
-  margin-bottom: 5px;
-`;
-
-const Tagline = styled.p`
+const TitleText = styled.div`
+  display: flex;
+  align-items: center;
   font-size: 14px;
-  color: var(--text-color);
+`;
+
+const TitleIcon = styled.img`
+  height: 16px;
+  margin-right: 5px;
+`;
+
+const WindowControls = styled.div`
+  display: flex;
+`;
+
+const WindowButton = styled.button`
+  background-color: #B2B1B3;
+  border: 1px outset #FFFFFF;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Webdings', sans-serif;
+  font-size: 10px;
+  cursor: pointer;
+
+  &:active {
+    border-style: inset;
+  }
+`;
+
+const SplashImage = styled.img`
+  display: block;
+  margin: 10px auto;
+  max-width: 100%;
 `;
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  padding: 10px 20px 20px;
 `;
 
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+const FormTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
 `;
 
-const Label = styled.label`
-  font-size: 16px;
-  font-weight: bold;
+const FormRow = styled.tr``;
+
+const FormLabelCell = styled.td`
+  text-align: left;
+  padding: 5px;
+  font-size: 14px;
+  color: black;
+`;
+
+const FormInputCell = styled.td`
+  padding: 5px;
 `;
 
 const Input = styled.input`
-  background-color: var(--input-bg);
-  border: 2px inset var(--input-border);
-  color: var(--input-text);
-  padding: 8px 10px;
+  background-color: white;
+  border: 2px inset #808080;
+  color: black;
+  padding: 5px;
+  width: 100%;
   font-family: 'VT323', monospace;
-  font-size: 16px;
+  font-size: 14px;
 `;
 
-const ButtonGroup = styled.div`
+const ButtonContainer = styled.div`
   display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
+  justify-content: flex-end;
 `;
 
-const Button = styled.button`
-  background-color: var(--button-bg);
-  border: 2px outset var(--button-border);
-  color: var(--button-text);
-  padding: 8px 15px;
-  font-family: 'VT323', monospace;
-  font-size: 16px;
+const SignOnButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
   cursor: pointer;
-  transition: all 0.1s;
-
-  &:hover {
-    background-color: #e0e0e0;
-  }
 
   &:active {
-    border-style: inset;
     transform: translateY(1px);
+  }
+
+  img {
+    display: block;
   }
 `;
 
 const ErrorMessage = styled.div`
-  color: var(--error-color);
+  color: red;
   margin-top: 10px;
   text-align: center;
+  font-size: 14px;
 `;
 
 const SignOn = () => {
@@ -117,42 +154,57 @@ const SignOn = () => {
 
   return (
     <SignOnWindow>
-      <SignOnHeader>
-        <Logo>Dream AIM</Logo>
-        <Tagline>America Online Instant Messenger</Tagline>
-      </SignOnHeader>
+      <TitleBar>
+        <TitleText>
+          <TitleIcon src={`${process.env.PUBLIC_URL}/favicon.svg`} alt="AIM Icon" />
+          Sign On
+        </TitleText>
+        <WindowControls>
+          <WindowButton title="Minimize">0</WindowButton>
+          <WindowButton title="Maximize">1</WindowButton>
+          <WindowButton title="Close">r</WindowButton>
+        </WindowControls>
+      </TitleBar>
+
+      <SplashImage src={splashImage} alt="AOL Instant Messenger" />
 
       <Form onSubmit={handleSubmit}>
-        <FormGroup>
-          <Label htmlFor="screenName">Screen Name:</Label>
-          <Input
-            type="text"
-            id="screenName"
-            value={screenName}
-            onChange={(e) => setScreenName(e.target.value)}
-            required
-          />
-        </FormGroup>
-
-        <FormGroup>
-          <Label htmlFor="password">Passphrase:</Label>
-          <Input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter the passphrase"
-            required
-          />
-        </FormGroup>
+        <FormTable>
+          <tbody>
+            <FormRow>
+              <FormLabelCell>Screen Name</FormLabelCell>
+              <FormInputCell>
+                <Input
+                  type="text"
+                  id="screenName"
+                  value={screenName}
+                  onChange={(e) => setScreenName(e.target.value)}
+                  required
+                />
+              </FormInputCell>
+            </FormRow>
+            <FormRow>
+              <FormLabelCell>Passphrase</FormLabelCell>
+              <FormInputCell>
+                <Input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </FormInputCell>
+            </FormRow>
+          </tbody>
+        </FormTable>
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
 
-        <ButtonGroup>
-          <Button type="submit" disabled={loading} style={{ margin: '0 auto' }}>
-            {loading ? 'Loading...' : 'Sign On'}
-          </Button>
-        </ButtonGroup>
+        <ButtonContainer>
+          <SignOnButton type="submit" disabled={loading}>
+            <img src={signOnButtonImage} alt="Sign On" />
+          </SignOnButton>
+        </ButtonContainer>
       </Form>
     </SignOnWindow>
   );
