@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 
 export const AuthContext = createContext();
 
@@ -9,8 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // API URL from environment variable
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  // API URL is now configured in axiosInstance
 
   // Check if user is already authenticated on component mount
   useEffect(() => {
@@ -25,7 +24,7 @@ export const AuthProvider = ({ children }) => {
   // Check authentication status
   const checkAuthStatus = async (token) => {
     try {
-      const response = await axios.get(`${API_URL}/users/me`, {
+      const response = await axiosInstance.get(`/users/me`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -48,7 +47,7 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setLoading(true);
 
-      const response = await axios.post(`${API_URL}/users/signin`, {
+      const response = await axiosInstance.post(`/users/signin`, {
         screen_name: screenName,
         password: password
       });
@@ -76,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setLoading(true);
 
-      const response = await axios.post(`${API_URL}/users/`, {
+      const response = await axiosInstance.post(`/users/`, {
         screen_name: screenName,
         password: password
       });
@@ -97,7 +96,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
 
       if (token) {
-        await axios.post(`${API_URL}/users/signout`, {}, {
+        await axiosInstance.post(`/users/signout`, {}, {
           headers: {
             Authorization: `Bearer ${token}`
           }

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import { AuthContext } from './AuthContext';
 
 export const ChatContext = createContext();
@@ -16,13 +16,13 @@ export const ChatProvider = ({ children }) => {
 
   const socketRef = useRef(null);
 
-  // API URL from environment variable
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  // API URL is now configured in axiosInstance
+  // WebSocket URL still needed for WebSocket connections
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
 
   // Connect to WebSocket when authenticated
   useEffect(() => {
-    if (isAuthenticated && currentUser) {
+    if (isAuthenticated && currentUser && currentUser.id) {
       connectWebSocket();
 
       // Fetch initial data
@@ -43,7 +43,7 @@ export const ChatProvider = ({ children }) => {
   // Connect to WebSocket
   const connectWebSocket = () => {
     const token = localStorage.getItem('token');
-    if (!token || !currentUser) return;
+    if (!token || !currentUser || !currentUser.id) return;
 
     const socket = new WebSocket(`${WS_URL}/ws/${currentUser.id}`);
 
@@ -67,7 +67,7 @@ export const ChatProvider = ({ children }) => {
 
       // Attempt to reconnect after a delay
       setTimeout(() => {
-        if (isAuthenticated && currentUser) {
+        if (isAuthenticated && currentUser && currentUser.id) {
           connectWebSocket();
         }
       }, 3000);
@@ -136,7 +136,7 @@ export const ChatProvider = ({ children }) => {
   const fetchChatMessages = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/chat/messages`, {
+      const response = await axiosInstance.get(`/chat/messages`, {
         headers: getAuthHeader()
       });
 
@@ -152,7 +152,7 @@ export const ChatProvider = ({ children }) => {
   // Fetch chat room users
   const fetchChatUsers = async () => {
     try {
-      const response = await axios.get(`${API_URL}/chat/users`, {
+      const response = await axiosInstance.get(`/chat/users`, {
         headers: getAuthHeader()
       });
 
@@ -166,7 +166,7 @@ export const ChatProvider = ({ children }) => {
   // Fetch leader
   const fetchLeader = async () => {
     try {
-      const response = await axios.get(`${API_URL}/chat/leader`, {
+      const response = await axiosInstance.get(`/chat/leader`, {
         headers: getAuthHeader()
       });
 
@@ -180,7 +180,7 @@ export const ChatProvider = ({ children }) => {
   // Fetch active round
   const fetchActiveRound = async () => {
     try {
-      const response = await axios.get(`${API_URL}/game/rounds/active`, {
+      const response = await axiosInstance.get(`/game/rounds/active`, {
         headers: getAuthHeader()
       });
 
@@ -213,7 +213,7 @@ export const ChatProvider = ({ children }) => {
       setMessages(prevMessages => [tempMessage, ...prevMessages]);
 
       // Send the message to the server
-      await axios.post(`${API_URL}/chat/messages`, {
+      await axiosInstance.post(`/chat/messages`, {
         user_id: currentUser.id,
         content: content
       }, {

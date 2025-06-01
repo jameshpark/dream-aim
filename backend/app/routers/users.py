@@ -16,7 +16,7 @@ SECRET_KEY = "your-secret-key"  # In production, use a secure secret key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
-PASSPHRASE_HASH = "728739c127665628c61c698d11297879"
+PASSPHRASE_HASH = "acb9d4bf6d3ccbc0c4981135d32ed784"
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

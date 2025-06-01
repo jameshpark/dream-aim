@@ -6,6 +6,8 @@ import asyncio
 import random
 import json
 import logging
+import os
+import re
 from datetime import datetime
 
 from app.database.database import get_db, engine
@@ -21,10 +23,18 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Dream AIM")
 
-# Configure CORS
+# Define allowed origins
+allowed_origins = [
+    "https://jameshpark.github.io",  # GitHub Pages
+    "http://localhost:3000",         # Local development HTTP
+    "https://localhost:3000",        # Local development HTTPS
+]
+
+# Configure CORS with dynamic origin validation
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://jameshpark.github.io"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https?://[a-zA-Z0-9\-]+\.ngrok(-free)?\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

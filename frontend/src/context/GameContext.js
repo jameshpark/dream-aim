@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from './AuthContext';
 import { ChatContext } from './ChatContext';
@@ -19,9 +19,7 @@ export const GameProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [isBuddyTyping, setIsBuddyTyping] = useState(false);
 
-  // API URL from environment variable
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-
+  // API URL is now configured in axiosInstance
 
   // Fetch conversations when in an active round
   useEffect(() => {
@@ -34,7 +32,7 @@ export const GameProvider = ({ children }) => {
   const fetchBuddies = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/game/buddies`, {
+      const response = await axiosInstance.get(`/game/buddies`, {
         headers: getAuthHeader()
       });
 
@@ -51,7 +49,7 @@ export const GameProvider = ({ children }) => {
   const fetchConversations = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/chat/conversations`, {
+      const response = await axiosInstance.get(`/chat/conversations`, {
         headers: getAuthHeader()
       });
 
@@ -83,7 +81,7 @@ export const GameProvider = ({ children }) => {
       }
 
       // Create a new conversation
-      const response = await axios.post(`${API_URL}/chat/conversations`, {
+      const response = await axiosInstance.post(`/chat/conversations`, {
         user_id: currentUser.id,
         buddy_id: buddyId,
         round_id: activeRound.id
@@ -107,7 +105,7 @@ export const GameProvider = ({ children }) => {
   const fetchConversationMessages = async (conversationId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/chat/conversations/${conversationId}/messages`, {
+      const response = await axiosInstance.get(`/chat/conversations/${conversationId}/messages`, {
         headers: getAuthHeader()
       });
 
@@ -125,7 +123,7 @@ export const GameProvider = ({ children }) => {
     try {
       if (!content.trim()) return;
 
-      const response = await axios.post(`${API_URL}/chat/conversations/${conversationId}/messages`, {
+      const response = await axiosInstance.post(`/chat/conversations/${conversationId}/messages`, {
         sender_type: 'user',
         content: content
       }, {
@@ -161,7 +159,7 @@ export const GameProvider = ({ children }) => {
         throw new Error('No active round');
       }
 
-      const response = await axios.post(`${API_URL}/game/guess/${buddyId}`, {}, {
+      const response = await axiosInstance.post(`/game/guess/${buddyId}`, {}, {
         headers: getAuthHeader()
       });
 
@@ -177,7 +175,7 @@ export const GameProvider = ({ children }) => {
   // Return to lobby after making a guess
   const returnToLobby = async () => {
     try {
-      await axios.post(`${API_URL}/game/return-to-lobby`, {}, {
+      await axiosInstance.post(`/game/return-to-lobby`, {}, {
         headers: getAuthHeader()
       });
 
