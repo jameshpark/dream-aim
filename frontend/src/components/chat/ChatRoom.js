@@ -244,7 +244,7 @@ const ChatRoom = () => {
   return (
     <ChatWindow>
       <ChatHeader>
-        <ChatTitle>Dream AIM Chat Room</ChatTitle>
+        <ChatTitle>Dream AIM Lobby</ChatTitle>
         <HeaderButtons>
           <HeaderButton onClick={handleSignOut}>Sign Out</HeaderButton>
         </HeaderButtons>
