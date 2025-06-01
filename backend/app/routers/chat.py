@@ -8,6 +8,7 @@ from app.models import models
 from app.schemas import schemas
 from app.routers.users import get_current_user
 from app.routers.game import generate_buddy_response
+from app.utils import check_and_assign_leader
 
 router = APIRouter(
     prefix="/chat",
@@ -102,6 +103,14 @@ async def get_chat_room_leader(
     """
     Get the current leader in the chat room
     """
+    leader = db.query(models.User).filter(
+        models.User.location == schemas.UserLocation.CHAT_ROOM,
+        models.User.role == schemas.UserRole.LEADER
+    ).first()
+
+    if not leader:
+        await check_and_assign_leader(db)
+
     leader = db.query(models.User).filter(
         models.User.location == schemas.UserLocation.CHAT_ROOM,
         models.User.role == schemas.UserRole.LEADER
