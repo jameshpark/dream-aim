@@ -2,6 +2,7 @@
   "name": "dream-aim-frontend",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://jameshpark.github.io/dream-aim",
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
@@ -9,14 +10,14 @@
     "axios": "^1.4.0",
     "date-fns": "^2.30.0",
     "react": "^18.2.0",
+    "react-confetti": "^6.1.0",
     "react-dom": "^18.2.0",
+    "react-icons": "^4.8.0",
     "react-router-dom": "^6.11.1",
     "react-scripts": "5.0.1",
-    "styled-components": "^5.3.10",
-    "web-vitals": "^2.1.4",
     "socket.io-client": "^4.6.1",
-    "react-confetti": "^6.1.0",
-    "react-icons": "^4.8.0"
+    "styled-components": "^5.3.10",
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -41,5 +42,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   }
 }
