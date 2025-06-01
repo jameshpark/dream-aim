@@ -205,7 +205,7 @@ const ChatRoom = () => {
         fetchLeader();
         fetchChatUsers();
         fetchChatMessages(); // Also refresh messages
-      }, 5000); // Refresh every 5 seconds
+      }, 500); // Refresh every 5 seconds
 
       return () => clearInterval(interval);
     }
@@ -220,9 +220,15 @@ const ChatRoom = () => {
   };
 
   const handleStartRound = async () => {
-    const success = await startRound();
-    if (success) {
-      navigate('/game');
+    try {
+      console.log('Starting round...');
+      const success = await startRound();
+      if (success) {
+        console.log('Round started successfully!');
+        // navigate('/game'); // let component handle this instead
+      }
+    } catch (err) {
+      console.error('Error starting round:', err);
     }
   };
 
@@ -247,7 +253,7 @@ const ChatRoom = () => {
       <ChatContent>
         <MainChat>
           <ChatMessages>
-            {loading ? (
+            {loading && messages.length === 0 ? (
               <StatusMessage>Loading messages...</StatusMessage>
             ) : messages.length === 0 ? (
               <StatusMessage>No messages yet. Start the conversation!</StatusMessage>

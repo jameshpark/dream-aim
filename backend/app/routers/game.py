@@ -11,6 +11,7 @@ from app.database.database import get_db
 from app.models import models
 from app.schemas import schemas
 from app.routers.users import get_current_user
+from app.utils import handle_guess, check_and_assign_leader
 
 load_dotenv()
 
@@ -144,13 +145,14 @@ async def create_round(
     Create a new game round (leader only)
     """
     # Ensure the user is a leader
-    if current_user.role != schemas.UserRole.LEADER:
-        raise HTTPException(status_code=403, detail="Only leaders can create rounds")
-    
-    # Ensure the user is in the chat room
-    if current_user.location != schemas.UserLocation.CHAT_ROOM:
-        raise HTTPException(status_code=403, detail="Must be in the chat room to create a round")
-    
+    # print(f"****************The current user is: {current_user.role} {current_user.screen_name}")
+    # if current_user.role != schemas.UserRole.LEADER:
+    #     raise HTTPException(status_code=403, detail="Only leaders can create rounds")
+    #
+    # # Ensure the user is in the chat room
+    # if current_user.location != schemas.UserLocation.CHAT_ROOM:
+    #     raise HTTPException(status_code=403, detail="Must be in the chat room to create a round")
+
     # Check if there's already an active round
     active_round = db.query(models.Round).filter(
         models.Round.state == schemas.RoundState.ACTIVE
@@ -306,46 +308,17 @@ async def make_guess(
     """
     Make a guess for the secret admirer
     """
-    # Ensure the user is in an active round
-    if current_user.location != schemas.UserLocation.ACTIVE_ROUND:
-        raise HTTPException(status_code=403, detail="Not in an active round")
-    
-    # Ensure the user hasn't already made a guess
-    if current_user.guess_state != schemas.GuessState.TBD:
-        raise HTTPException(status_code=400, detail="Already made a guess")
-    
-    # Get the current round
-    game_round = db.query(models.Round).filter(
-        models.Round.id == current_user.current_round_id,
-        models.Round.state == schemas.RoundState.ACTIVE
-    ).first()
+    result = await handle_guess(current_user.id, buddy_id, db)
 
-    guessed_secret_admirer = db.query(models.Buddy).filter(
-        models.Buddy.id == buddy_id
-    ).first()
-
-    if not game_round:
-        raise HTTPException(status_code=404, detail="Active round not found")
-    
-    # Check if the guess is correct
-    is_correct = (guessed_secret_admirer.id == game_round.secret_admirer)
-
-    # Update the user's guess state
-    current_user.guess_state = schemas.GuessState.CORRECT if is_correct else schemas.GuessState.INCORRECT
-    db.commit()
-
-    actual_secret_admirer = db.query(models.Buddy).filter(
-        models.Buddy.id == game_round.secret_admirer
-    ).first()
-    
     # Return the result
     return {
         "success": True,
         "message": "Guess recorded",
-        "data": {
-            "correct": is_correct,
-            "secret_admirer": actual_secret_admirer.name
-        }
+        # "data": {
+        #     "correct": is_correct,
+        #     "secret_admirer": actual_secret_admirer.name
+        # }
+        "data": result
     }
 
 @router.post("/return-to-lobby", response_model=schemas.StandardResponse)
@@ -384,7 +357,10 @@ async def return_to_lobby(
             game_round.state = schemas.RoundState.INACTIVE
             game_round.end_time = datetime.now()
             db.commit()
-    
+
+    print("****Refreshing leader from POST return-to-lobby****")
+    await check_and_assign_leader(db)
+
     return {
         "success": True,
         "message": "Returned to lobby",

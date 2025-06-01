@@ -135,17 +135,23 @@ export const ChatProvider = ({ children }) => {
   // Fetch chat messages
   const fetchChatMessages = async () => {
     try {
-      setLoading(true);
       const response = await axiosInstance.get(`/chat/messages`, {
         headers: getAuthHeader()
       });
 
-      setMessages(response.data);
-      setLoading(false);
+      if (response.data && response.data.length > 0) {
+        setMessages(response.data);
+      }
+
+      if (loading) {
+        setLoading(false);
+      }
     } catch (error) {
       console.error('Failed to fetch chat messages:', error);
       setError('Failed to load chat messages. Please try again.');
-      setLoading(false);
+      if (loading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -156,7 +162,10 @@ export const ChatProvider = ({ children }) => {
         headers: getAuthHeader()
       });
 
-      setUsers(response.data);
+      // Only update if we got new data and it's different
+      if (response.data && JSON.stringify(response.data) !== JSON.stringify(users)) {
+        setUsers(response.data);
+      }
     } catch (error) {
       console.error('Failed to fetch chat users:', error);
       setError('Failed to load chat users. Please try again.');
@@ -170,7 +179,10 @@ export const ChatProvider = ({ children }) => {
         headers: getAuthHeader()
       });
 
-      setLeader(response.data);
+      // Only update if we got new data and it's different
+      if (response.data && JSON.stringify(response.data) !== JSON.stringify(leader)) {
+        setLeader(response.data);
+      }
     } catch (error) {
       console.error('Failed to fetch leader:', error);
       setError('Failed to load leader information. Please try again.');
@@ -234,15 +246,27 @@ export const ChatProvider = ({ children }) => {
       const isLeader = (currentUser && currentUser.role === 'LEADER') || 
                       (currentUser && leader && currentUser.id === leader.id);
 
+      console.log('Start Round clicked! Leader check { isLeader, currentUser, leader }:', { isLeader, currentUser, leader});
+
       if (!currentUser || !isLeader) {
         throw new Error('Only the leader can start a round');
       }
 
+      console.log('WebSocket state:', {
+        exists: !!socketRef.current,
+        readyState: socketRef.current?.readyState,
+        OPEN: WebSocket.OPEN
+      });
+
       // Send WebSocket message to start round
       if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-        socketRef.current.send(JSON.stringify({
+        const message = JSON.stringify({
           type: 'start_round'
-        }));
+        });
+        console.log('Sending WebSocket message:', message);
+        socketRef.current.send(message);
+      } else {
+        throw new Error('WebSocket is not connected');
       }
 
       return true;

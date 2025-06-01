@@ -1,19 +1,15 @@
-from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List, Dict, Optional
-import asyncio
 import random
 import json
 import logging
-import os
-import re
 from datetime import datetime
 
 from app.database.database import get_db, engine
 from app.models import models
-from app.schemas import schemas
 from app.routers import users, chat, game
+from app.utils import active_connections, handle_guess, get_active_round, end_round, check_and_assign_leader
 
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
@@ -45,13 +41,10 @@ app.include_router(users.router)
 app.include_router(chat.router)
 app.include_router(game.router)
 
-# WebSocket connections
-active_connections: Dict[int, WebSocket] = {}
-active_round: Optional[int] = None
-
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await websocket.accept()
+    print(f"New connection from user {user_id} with websocket: {websocket}")
     active_connections[user_id] = websocket
 
     try:
@@ -61,46 +54,56 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             await websocket.close(code=1000)
             return
 
+        print(f"Found User {user_id} in the database, moving them to chat room")
         user.location = "CHAT_ROOM"
         db.commit()
 
         # Check if leader needs to be assigned
-        await check_and_assign_leader(db)
+        # await check_and_assign_leader(db)
+        print(f"Leader checked and assigned")
 
         # Notify all users about the new connection
         await broadcast_user_status(user_id, "connected")
+        print(f"Broadcasted user status to all users")
 
         while True:
             data = await websocket.receive_text()
+            print(f"Received data from user {user_id}: {data}")
             message_data = json.loads(data)
+            print(f"Parsed message data: {message_data}")
 
             # Handle different message types
             if message_data["type"] == "chat_message":
-                logger.info(f"Received chat message from user {user_id}: {message_data}")
+                print(f"Received chat message from user {user_id}: {message_data}")
                 await handle_chat_message(user_id, message_data["content"], db)
             elif message_data["type"] == "start_round":
-                logger.info(f"Received start round request from user {user_id}: {message_data}")
+                print(f"Received start round request from user {user_id}: {message_data}")
                 # Check if user is leader either by role or by being the only leader in the chat room
                 is_leader = user.role == "LEADER"
+                print(f"User is leader check 1: {is_leader}")
                 if not is_leader:
                     # Check if this user is the leader in the chat room
+                    print("***Refreshing leader from start_round websocket handler***")
+                    await check_and_assign_leader(db)
                     leader = db.query(models.User).filter(
                         models.User.role == "LEADER",
                         models.User.location == "CHAT_ROOM"
                     ).first()
                     is_leader = leader and leader.id == user.id
+                    print(f"User is leader check 2: {is_leader}")
 
                 if is_leader:
-                    await start_new_round(db)
+                    print(f"User is leader, starting new round")
+                    await start_new_round(db, user)
             elif message_data["type"] == "make_guess":
-                logger.info(f"Received make guess request from user {user_id}: {message_data}")
+                print(f"Received make guess request from user {user_id}: {message_data}")
                 await handle_guess(user_id, message_data["guess"], db)
             elif message_data["type"] == "return_to_lobby":
-                logger.info(f"Received return to lobby request from user {user_id}: {message_data}")
+                print(f"Received return to lobby request from user {user_id}: {message_data}")
                 await return_user_to_lobby(user_id, db)
 
     except WebSocketDisconnect:
-        logger.info(f"Disconnected from user {user_id}")
+        print(f"Disconnected from user {user_id}")
 
         # Handle disconnection
         if user_id in active_connections:
@@ -113,6 +116,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             db.commit()
 
         # Check if leader needs to be reassigned
+        print("****Refreshing leader from websocket_endpoint disconnection handler****")
         await check_and_assign_leader(db)
 
         # Notify all users about the disconnection
@@ -155,76 +159,33 @@ async def handle_chat_message(user_id: int, content: str, db: Session):
                 "timestamp": new_message.timestamp.isoformat()
             }))
 
-async def check_and_assign_leader(db: Session):
-    """Check if a leader needs to be assigned in the chat room"""
-    # Get all users in the chat room
-    chat_room_users = db.query(models.User).filter(models.User.location == "CHAT_ROOM").all()
-
-    if not chat_room_users:
-        return
-
-    # Check if any user is already a leader
-    current_leader = db.query(models.User).filter(
-        models.User.role == "LEADER",
-        models.User.location == "CHAT_ROOM"
-    ).first()
-
-    if current_leader:
-        # Leader exists and is in the chat room, no need to reassign
-        return
-
-    # Check if there's a leader who is temporarily offline (might be refreshing)
-    offline_leader = db.query(models.User).filter(
-        models.User.role == "LEADER",
-        models.User.location == "OFFLINE"
-    ).first()
-
-    # If there's an offline leader and they were active recently (within 10 seconds),
-    # don't reassign the leader as they might be refreshing the page
-    if offline_leader and (datetime.now() - offline_leader.last_active).total_seconds() < 10:
-        return
-
-    # No leader in chat room or offline leader is inactive for too long, assign a new one
-    new_leader = random.choice(chat_room_users)
-    new_leader.role = "LEADER"
-
-    # Make sure all other users are players
-    for user in chat_room_users:
-        if user.id != new_leader.id:
-            user.role = "PLAYER"
-
-    db.commit()
-
-    # Notify all users about the new leader
-    for connection_id, connection in active_connections.items():
-        await connection.send_text(json.dumps({
-            "type": "leader_assigned",
-            "leader_id": new_leader.id,
-            "leader_name": new_leader.screen_name
-        }))
-
-async def start_new_round(db: Session):
+async def start_new_round(db: Session, user: models.User):
     """Start a new game round"""
-    global active_round
-
     # Check if there's already an active round
+    active_round = get_active_round(db)
     if active_round is not None:
+        print(f"Active round {active_round} already exists, skipping new round start")
         return
 
     # Get all users in the chat room
     chat_room_users = db.query(models.User).filter(models.User.location == "CHAT_ROOM").all()
+    print(f"Chat room users: {chat_room_users}")
 
     if not chat_room_users:
+        print(f"No users in the chat room, skipping new round start")
         return
 
     # Get the leader
-    leader = db.query(models.User).filter(
-        models.User.role == "LEADER",
-        models.User.location == "CHAT_ROOM"
-    ).first()
-
-    if not leader:
-        return
+    # await check_and_assign_leader(db)
+    # leader = db.query(models.User).filter(
+    #     models.User.role == "LEADER",
+    #     models.User.location == "CHAT_ROOM"
+    # ).first()
+    # print(f"Leader: {leader}")
+    #
+    # if not leader:
+    #     print(f"No leader found in the chat room, skipping new round start")
+    #     return
 
     # Create a new round using the game router's create_round function
     from app.routers.game import create_round
@@ -232,7 +193,8 @@ async def start_new_round(db: Session):
 
     # Create a round with a random secret admirer (1-10)
     round_data = RoundCreate(secret_admirer=random.randint(1, 10))
-    new_round = await create_round(round_data, db, leader)
+    new_round = await create_round(round_data, db, user)
+    print(f"New round created: {new_round}")
 
     # Move all users to the active round
     for user in chat_room_users:
@@ -242,7 +204,6 @@ async def start_new_round(db: Session):
         user.current_round_id = new_round.id
 
     db.commit()
-    active_round = new_round.id
 
     # Notify all users about the new round
     for user in chat_room_users:
@@ -253,50 +214,12 @@ async def start_new_round(db: Session):
                 "timestamp": new_round.start_time.isoformat()
             }))
 
-async def handle_guess(user_id: int, guess: int, db: Session):
-    """Handle a user's guess"""
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user or user.location != "ACTIVE_ROUND" or not active_round:
-        return
-
-    # Get the current round
-    game_round = db.query(models.Round).filter(models.Round.id == active_round).first()
-    if not game_round or game_round.state != "ACTIVE":
-        return
-
-    # Check if the guess is correct
-    is_correct = (guess == game_round.secret_admirer)
-    user.guess_state = "CORRECT" if is_correct else "INCORRECT"
-    db.commit()
-
-    # Notify the user about their guess result
-    if user_id in active_connections:
-        await active_connections[user_id].send_text(json.dumps({
-            "type": "guess_result",
-            "correct": is_correct,
-            "secret_admirer": game_round.secret_admirer if not is_correct else None
-        }))
-
-    # Check if all users have made their guesses
-    active_users = db.query(models.User).filter(
-        models.User.location == "ACTIVE_ROUND",
-        models.User.current_round_id == active_round
-    ).all()
-
-    users_with_guesses = db.query(models.User).filter(
-        models.User.location == "ACTIVE_ROUND",
-        models.User.current_round_id == active_round,
-        models.User.guess_state != "TBD"
-    ).all()
-
-    if len(active_users) > 0 and len(active_users) == len(users_with_guesses):
-        # All users have made their guesses, schedule round end
-        asyncio.create_task(end_round_after_delay(db))
-
 async def return_user_to_lobby(user_id: int, db: Session):
     """Return a user to the lobby after they've made their guess"""
+    print(f"Returning user {user_id} to the chat room")
     user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user or user.location != "ACTIVE_ROUND":
+    if not user or user.location == "CHAT_ROOM":
+        print(f"User {user_id} not found or already in the chat room, skipping return")
         return
 
     user.location = "CHAT_ROOM"
@@ -307,10 +230,10 @@ async def return_user_to_lobby(user_id: int, db: Session):
     # Check if there are any users left in the round
     active_users = db.query(models.User).filter(
         models.User.location == "ACTIVE_ROUND",
-        models.User.current_round_id == active_round
     ).all()
 
     if not active_users:
+        print(f"No users left in the round, ending round")
         await end_round(db)
 
     # Notify the user that they've returned to the lobby
@@ -320,53 +243,7 @@ async def return_user_to_lobby(user_id: int, db: Session):
         }))
 
     # Check if leader needs to be reassigned
-    await check_and_assign_leader(db)
-
-async def end_round_after_delay(db: Session):
-    """End the round after a 10-second delay"""
-    await asyncio.sleep(10)
-    await end_round(db)
-
-async def end_round(db: Session):
-    """End the current round and return all users to the lobby"""
-    global active_round
-
-    if not active_round:
-        return
-
-    # Get the current round
-    game_round = db.query(models.Round).filter(models.Round.id == active_round).first()
-    if not game_round:
-        active_round = None
-        return
-
-    # Mark the round as inactive
-    game_round.state = "INACTIVE"
-    game_round.end_time = datetime.now()
-
-    # Return all users to the lobby
-    active_users = db.query(models.User).filter(
-        models.User.location == "ACTIVE_ROUND",
-        models.User.current_round_id == game_round.id
-    ).all()
-
-    for user in active_users:
-        user.location = "CHAT_ROOM"
-        user.guess_state = "TBD"
-        user.current_round_id = None
-
-    db.commit()
-    active_round = None
-
-    # Notify all users that the round has ended
-    for user in active_users:
-        if user.id in active_connections:
-            await active_connections[user.id].send_text(json.dumps({
-                "type": "round_ended",
-                "round_id": game_round.id
-            }))
-
-    # Check if leader needs to be reassigned
+    print("****Refreshing leader from return_user_to_lobby****")
     await check_and_assign_leader(db)
 
 @app.get("/")

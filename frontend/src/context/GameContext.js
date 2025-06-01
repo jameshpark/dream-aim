@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, {createContext, useState, useEffect, useContext, useRef} from 'react';
 import axiosInstance from '../utils/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from './AuthContext';
@@ -18,6 +18,8 @@ export const GameProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isBuddyTyping, setIsBuddyTyping] = useState(false);
+
+  // const socketRef = useRef(null);
 
   // API URL is now configured in axiosInstance
 
@@ -175,6 +177,24 @@ export const GameProvider = ({ children }) => {
   // Return to lobby after making a guess
   const returnToLobby = async () => {
     try {
+      // console.log('WebSocket state:', {
+      //   exists: !!socketRef.current,
+      //   readyState: socketRef.current?.readyState,
+      //   OPEN: WebSocket.OPEN
+      // });
+
+      // Send WebSocket message to start round
+      // if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      //   const message = JSON.stringify({
+      //     type: 'return_to_lobby'
+      //   });
+      //   console.log('Sending WebSocket message:', message);
+      //   socketRef.current.send(message);
+      //
+      // } else {
+      //   throw new Error('WebSocket is not connected');
+      // }
+
       await axiosInstance.post(`/game/return-to-lobby`, {}, {
         headers: getAuthHeader()
       });
