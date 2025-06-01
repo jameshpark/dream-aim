@@ -1,13 +1,20 @@
 {
   "files": {
     "main.css": "/dream-aim/static/css/main.bef7dfab.css",
-    "main.js": "/dream-aim/static/js/main.4512a830.js",
+    "main.js": "/dream-aim/static/js/main.e037a8ca.js",
+    "static/media/splash.png": "/dream-aim/static/media/splash.56209ee41f3e305a3b1c.png",
+    "static/media/help-setup-buttons.png": "/dream-aim/static/media/help-setup-buttons.3796fe2f5facb5b749a5.png",
+    "static/media/sign-on-button.png": "/dream-aim/static/media/sign-on-button.6dc3ccacba86983836c8.png",
+    "static/media/title-bar-title.png": "/dream-aim/static/media/title-bar-title.0df1084342143115fdd4.png",
+    "static/media/screen-name-label.png": "/dream-aim/static/media/screen-name-label.585d40b92a0ab644e250.png",
+    "static/media/title-bar-buttons.png": "/dream-aim/static/media/title-bar-buttons.e079dfb8c4f035eebd16.png",
+    "static/media/password-label.png": "/dream-aim/static/media/password-label.aef7812a02d50a151df8.png",
     "index.html": "/dream-aim/index.html",
     "main.bef7dfab.css.map": "/dream-aim/static/css/main.bef7dfab.css.map",
-    "main.4512a830.js.map": "/dream-aim/static/js/main.4512a830.js.map"
+    "main.e037a8ca.js.map": "/dream-aim/static/js/main.e037a8ca.js.map"
   },
   "entrypoints": [
     "static/css/main.bef7dfab.css",
-    "static/js/main.4512a830.js"
+    "static/js/main.e037a8ca.js"
   ]
 }
