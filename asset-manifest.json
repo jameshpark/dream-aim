@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/dream-aim/static/css/main.bef7dfab.css",
-    "main.js": "/dream-aim/static/js/main.3a9bd5df.js",
+    "main.js": "/dream-aim/static/js/main.f1f64c41.js",
     "index.html": "/dream-aim/index.html",
     "main.bef7dfab.css.map": "/dream-aim/static/css/main.bef7dfab.css.map",
-    "main.3a9bd5df.js.map": "/dream-aim/static/js/main.3a9bd5df.js.map"
+    "main.f1f64c41.js.map": "/dream-aim/static/js/main.f1f64c41.js.map"
   },
   "entrypoints": [
     "static/css/main.bef7dfab.css",
-    "static/js/main.3a9bd5df.js"
+    "static/js/main.f1f64c41.js"
   ]
 }
